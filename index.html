@@ -298,7 +298,7 @@
       const Header = () => (
         <div className="header">
           <div className="header-top">
-            <div className="federation-name">🌸 Blossom Federation · East London</div>
+            <div className="federation-name">🌸 Blossom Federation</div>
             <div className="app-title">World Cup 2026 Predictor ⚽</div>
             <div className="app-sub">Predict all 72 group stage fixtures — best score wins!</div>
             <div className="schools-row">
@@ -405,29 +405,30 @@
           )}
 
           {leaderboard.length > 0 && (() => {
+            const allTeamsList = ["Algeria","Argentina","Australia","Austria","Belgium","Bosnia and Herzegovina","Brazil","Canada","Cape Verde","Czechia","Colombia","Croatia","Curacao","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Haiti","Iran","Iraq","Ivory Coast","Japan","Jordan","Mexico","Morocco","Netherlands","New Zealand","Norway","Panama","Paraguay","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","South Africa","South Korea","Spain","Sweden","Switzerland","Tunisia","Turkey","Uruguay","USA","Uzbekistan"];
             const teamPts = {};
+            allTeamsList.forEach(t => teamPts[t] = 0);
             leaderboard.forEach(u => {
               if (u.favourite_team_1) teamPts[u.favourite_team_1] = (teamPts[u.favourite_team_1]||0) + 3;
               if (u.favourite_team_2) teamPts[u.favourite_team_2] = (teamPts[u.favourite_team_2]||0) + 2;
               if (u.favourite_team_3) teamPts[u.favourite_team_3] = (teamPts[u.favourite_team_3]||0) + 1;
             });
-            const ranked = Object.entries(teamPts).filter(([,p])=>p>0).sort((a,b)=>b[1]-a[1]);
-            if (ranked.length === 0) return null;
-            const max = ranked[0][1];
+            const ranked = Object.entries(teamPts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+            const max = ranked[0][1] || 1;
             return (
               <div className="card">
                 <div className="section-title">❤️ Federation's Favourite Teams</div>
                 <div style={{fontSize:12,color:"#546e7a",marginBottom:12}}>3pts for 1st choice · 2pts for 2nd · 1pt for 3rd</div>
                 {ranked.map(([team, pts], i) => (
                   <div key={team} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <div style={{width:24,textAlign:"center",fontSize:i<3?16:13,fontWeight:700,color:"#aaa"}}>
-                      {i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1}
+                    <div style={{width:24,textAlign:"center",fontSize:i<3&&pts>0?16:13,fontWeight:700,color:pts>0?"#aaa":"#ddd"}}>
+                      {pts>0?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):i+1}
                     </div>
-                    <div style={{fontSize:13,fontWeight:700,minWidth:130}}>{FLAGS[team]||"🏳"} {team}</div>
+                    <div style={{fontSize:13,fontWeight:pts>0?700:400,minWidth:130,color:pts>0?"#333":"#aaa"}}>{FLAGS[team]||"🏳"} {team}</div>
                     <div className="bar-bg" style={{flex:1}}>
-                      <div className="bar-fill" style={{width:`${(pts/max)*100}%`,background:"#2e7d32"}}/>
+                      <div className="bar-fill" style={{width:`${(pts/max)*100}%`,background:pts>0?"#2e7d32":"#ddd"}}/>
                     </div>
-                    <div style={{fontSize:12,fontWeight:700,color:"#2e7d32",minWidth:30,textAlign:"right"}}>{pts}pts</div>
+                    <div style={{fontSize:12,fontWeight:600,color:pts>0?"#2e7d32":"#bbb",minWidth:30,textAlign:"right"}}>{pts}pts</div>
                   </div>
                 ))}
               </div>
