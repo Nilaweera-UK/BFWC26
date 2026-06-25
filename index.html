@@ -9,1029 +9,792 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #f0f7f0; font-family: 'Nunito', system-ui, sans-serif; }
-  </style>
+  <style>* { box-sizing: border-box; margin: 0; padding: 0; } body { background: #f0f7f0; font-family: 'Nunito', system-ui, sans-serif; }</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script type="text/babel">
-    const { useState, useEffect, useCallback } = React;
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback } = React;
 
-    // ─── SUPABASE ─────────────────────────────────────────────────────────────
-    // SAME database as Mulberry app — uses separate tables: blossom_users, blossom_results
-    const SUPABASE_URL = "https://kmavclegdxssujusxtzd.supabase.co";
-    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttYXZjbGVnZHhzc3VqdXN4dHpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzYyMjUsImV4cCI6MjA5NDk1MjIyNX0.J170aXs73Kk4E9z1zNgYs9YtEJzOnmnQQaP2eMNjZk4";
-    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://kmavclegdxssujusxtzd.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttYXZjbGVnZHhzc3VqdXN4dHpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzNzYyMjUsImV4cCI6MjA5NDk1MjIyNX0.J170aXs73Kk4E9z1zNgYs9YtEJzOnmnQQaP2eMNjZk4";
+const FUNCTION_URL = "https://kmavclegdxssujusxtzd.supabase.co/functions/v1/send-verification";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // ─── BLOSSOM FEDERATION SCHOOLS ───────────────────────────────────────────
-    const SCHOOLS = [
-      "Daubeney Primary School",
-      "Lauriston School",
-      "Sebright School",
-    ];
+const SCHOOLS = ["Daubeney Primary School","Lauriston School","Sebright School"];
+const EMAIL_DOMAIN = "@blossom.hackney.sch.uk";
+const DEADLINE = new Date("2026-06-11T19:00:00Z");
+const SCHOOL_PASSWORDS = {
+  "Daubeney Primary School": "daub2026",
+  "Lauriston School":        "laur2026",
+  "Sebright School":         "sebr2026",
+};
 
-    const EMAIL_DOMAIN = "@blossom.hackney.sch.uk";
-    const DEADLINE = new Date("2026-06-11T19:00:00Z");
+const NAME_MAP = {
+  "Bosnia-Herzegovina":"Bosnia and Herzegovina","United States":"USA",
+  "Curacao":"Curacao","Cape Verde Islands":"Cape Verde","Congo DR":"DR Congo",
+};
+const normalise = name => NAME_MAP[name] || name;
 
-    // ─── SCHOOL PASSWORDS ─────────────────────────────────────────────────────
-    // Change these here if you ever need to rotate them
-    const SCHOOL_PASSWORDS = {
-      "Daubeney Primary School": "daub2026",
-      "Lauriston School":        "laur2026",
-      "Sebright School":         "sebr2026",
-    };
+const GROUPS = {
+  A:{teams:["Mexico","South Africa","South Korea","Czechia"]},
+  B:{teams:["Canada","Bosnia and Herzegovina","Qatar","Switzerland"]},
+  C:{teams:["Brazil","Morocco","Haiti","Scotland"]},
+  D:{teams:["USA","Paraguay","Australia","Turkey"]},
+  E:{teams:["Germany","Curacao","Ivory Coast","Ecuador"]},
+  F:{teams:["Netherlands","Japan","Sweden","Tunisia"]},
+  G:{teams:["Belgium","Egypt","Iran","New Zealand"]},
+  H:{teams:["Spain","Cape Verde","Saudi Arabia","Uruguay"]},
+  I:{teams:["France","Senegal","Iraq","Norway"]},
+  J:{teams:["Argentina","Algeria","Austria","Jordan"]},
+  K:{teams:["Portugal","DR Congo","Uzbekistan","Colombia"]},
+  L:{teams:["England","Croatia","Ghana","Panama"]},
+};
 
-    // ─── SCHOOL COLOURS ───────────────────────────────────────────────────────
-    const BRAND = {
-      green:    "#2e7d32",
-      greenDark:"#1b5e20",
-      greenMid: "#43a047",
-      greenLight:"#c8e6c9",
-      yellow:   "#f9a825",
-      orange:   "#e65100",
-      pink:     "#ad1457",
-      teal:     "#00796b",
-      gray:     "#546e7a",
-    };
+const FIXTURES = [
+  {id:1,group:"A",home:"Mexico",away:"South Africa",date:"2026-06-11",time:"20:00"},
+  {id:2,group:"A",home:"South Korea",away:"Czechia",date:"2026-06-12",time:"03:00"},
+  {id:3,group:"B",home:"Canada",away:"Bosnia and Herzegovina",date:"2026-06-12",time:"20:00"},
+  {id:4,group:"D",home:"USA",away:"Paraguay",date:"2026-06-13",time:"02:00"},
+  {id:5,group:"B",home:"Qatar",away:"Switzerland",date:"2026-06-13",time:"20:00"},
+  {id:6,group:"C",home:"Brazil",away:"Morocco",date:"2026-06-14",time:"00:00"},
+  {id:7,group:"C",home:"Haiti",away:"Scotland",date:"2026-06-14",time:"02:00"},
+  {id:8,group:"D",home:"Australia",away:"Turkey",date:"2026-06-14",time:"05:00"},
+  {id:9,group:"E",home:"Germany",away:"Curacao",date:"2026-06-14",time:"19:00"},
+  {id:10,group:"F",home:"Netherlands",away:"Japan",date:"2026-06-14",time:"22:00"},
+  {id:11,group:"E",home:"Ivory Coast",away:"Ecuador",date:"2026-06-15",time:"01:00"},
+  {id:12,group:"F",home:"Sweden",away:"Tunisia",date:"2026-06-15",time:"05:00"},
+  {id:13,group:"H",home:"Spain",away:"Cape Verde",date:"2026-06-15",time:"18:00"},
+  {id:14,group:"G",home:"Belgium",away:"Egypt",date:"2026-06-16",time:"00:00"},
+  {id:15,group:"H",home:"Saudi Arabia",away:"Uruguay",date:"2026-06-16",time:"00:00"},
+  {id:16,group:"G",home:"Iran",away:"New Zealand",date:"2026-06-16",time:"06:00"},
+  {id:17,group:"I",home:"France",away:"Senegal",date:"2026-06-16",time:"21:00"},
+  {id:18,group:"I",home:"Iraq",away:"Norway",date:"2026-06-17",time:"00:00"},
+  {id:19,group:"J",home:"Argentina",away:"Algeria",date:"2026-06-17",time:"04:00"},
+  {id:20,group:"J",home:"Austria",away:"Jordan",date:"2026-06-17",time:"09:00"},
+  {id:21,group:"K",home:"Portugal",away:"DR Congo",date:"2026-06-17",time:"20:00"},
+  {id:22,group:"L",home:"England",away:"Croatia",date:"2026-06-17",time:"23:00"},
+  {id:23,group:"L",home:"Ghana",away:"Panama",date:"2026-06-18",time:"01:00"},
+  {id:24,group:"K",home:"Uzbekistan",away:"Colombia",date:"2026-06-18",time:"05:00"},
+  {id:25,group:"A",home:"Czechia",away:"South Africa",date:"2026-06-18",time:"18:00"},
+  {id:26,group:"B",home:"Switzerland",away:"Bosnia and Herzegovina",date:"2026-06-19",time:"00:00"},
+  {id:27,group:"B",home:"Canada",away:"Qatar",date:"2026-06-19",time:"03:00"},
+  {id:28,group:"A",home:"Mexico",away:"South Korea",date:"2026-06-19",time:"04:00"},
+  {id:29,group:"C",home:"Scotland",away:"Morocco",date:"2026-06-20",time:"00:00"},
+  {id:30,group:"D",home:"USA",away:"Australia",date:"2026-06-20",time:"00:00"},
+  {id:31,group:"C",home:"Brazil",away:"Haiti",date:"2026-06-20",time:"03:00"},
+  {id:32,group:"D",home:"Turkey",away:"Paraguay",date:"2026-06-20",time:"09:00"},
+  {id:33,group:"F",home:"Netherlands",away:"Sweden",date:"2026-06-20",time:"20:00"},
+  {id:34,group:"E",home:"Germany",away:"Ivory Coast",date:"2026-06-20",time:"22:00"},
+  {id:35,group:"E",home:"Ecuador",away:"Curacao",date:"2026-06-21",time:"05:00"},
+  {id:36,group:"F",home:"Tunisia",away:"Japan",date:"2026-06-21",time:"07:00"},
+  {id:37,group:"H",home:"Spain",away:"Saudi Arabia",date:"2026-06-21",time:"18:00"},
+  {id:38,group:"G",home:"Belgium",away:"Iran",date:"2026-06-22",time:"00:00"},
+  {id:39,group:"H",home:"Uruguay",away:"Cape Verde",date:"2026-06-22",time:"00:00"},
+  {id:40,group:"G",home:"New Zealand",away:"Egypt",date:"2026-06-22",time:"06:00"},
+  {id:41,group:"J",home:"Argentina",away:"Austria",date:"2026-06-22",time:"20:00"},
+  {id:42,group:"I",home:"France",away:"Iraq",date:"2026-06-22",time:"23:00"},
+  {id:43,group:"I",home:"Norway",away:"Senegal",date:"2026-06-23",time:"02:00"},
+  {id:44,group:"J",home:"Jordan",away:"Algeria",date:"2026-06-23",time:"08:00"},
+  {id:45,group:"K",home:"Portugal",away:"Uzbekistan",date:"2026-06-23",time:"20:00"},
+  {id:46,group:"L",home:"England",away:"Ghana",date:"2026-06-23",time:"22:00"},
+  {id:47,group:"L",home:"Panama",away:"Croatia",date:"2026-06-24",time:"01:00"},
+  {id:48,group:"K",home:"Colombia",away:"DR Congo",date:"2026-06-24",time:"05:00"},
+  {id:49,group:"B",home:"Switzerland",away:"Canada",date:"2026-06-25",time:"00:00"},
+  {id:50,group:"B",home:"Bosnia and Herzegovina",away:"Qatar",date:"2026-06-25",time:"00:00"},
+  {id:51,group:"C",home:"Scotland",away:"Brazil",date:"2026-06-25",time:"00:00"},
+  {id:52,group:"C",home:"Morocco",away:"Haiti",date:"2026-06-25",time:"00:00"},
+  {id:53,group:"A",home:"Czechia",away:"Mexico",date:"2026-06-25",time:"04:00"},
+  {id:54,group:"A",home:"South Africa",away:"South Korea",date:"2026-06-25",time:"04:00"},
+  {id:55,group:"E",home:"Ecuador",away:"Germany",date:"2026-06-25",time:"22:00"},
+  {id:56,group:"E",home:"Curacao",away:"Ivory Coast",date:"2026-06-25",time:"22:00"},
+  {id:57,group:"F",home:"Japan",away:"Sweden",date:"2026-06-26",time:"02:00"},
+  {id:58,group:"F",home:"Tunisia",away:"Netherlands",date:"2026-06-26",time:"02:00"},
+  {id:59,group:"D",home:"Turkey",away:"USA",date:"2026-06-26",time:"07:00"},
+  {id:60,group:"D",home:"Paraguay",away:"Australia",date:"2026-06-26",time:"07:00"},
+  {id:61,group:"I",home:"Norway",away:"France",date:"2026-06-26",time:"21:00"},
+  {id:62,group:"I",home:"Senegal",away:"Iraq",date:"2026-06-26",time:"21:00"},
+  {id:63,group:"H",home:"Cape Verde",away:"Saudi Arabia",date:"2026-06-27",time:"03:00"},
+  {id:64,group:"H",home:"Uruguay",away:"Spain",date:"2026-06-27",time:"03:00"},
+  {id:65,group:"G",home:"Egypt",away:"Iran",date:"2026-06-27",time:"08:00"},
+  {id:66,group:"G",home:"New Zealand",away:"Belgium",date:"2026-06-27",time:"08:00"},
+  {id:67,group:"L",home:"Panama",away:"England",date:"2026-06-27",time:"23:00"},
+  {id:68,group:"L",home:"Croatia",away:"Ghana",date:"2026-06-27",time:"23:00"},
+  {id:69,group:"K",home:"Colombia",away:"Portugal",date:"2026-06-28",time:"03:30"},
+  {id:70,group:"K",home:"DR Congo",away:"Uzbekistan",date:"2026-06-28",time:"03:30"},
+  {id:71,group:"J",home:"Algeria",away:"Austria",date:"2026-06-28",time:"05:00"},
+  {id:72,group:"J",home:"Jordan",away:"Argentina",date:"2026-06-28",time:"05:00"},
+];
 
-    // ─── FIXTURES DATA (unchanged) ────────────────────────────────────────────
-    const GROUPS = {
-      A:{teams:["Mexico","South Africa","South Korea","Czechia"]},
-      B:{teams:["Canada","Bosnia and Herzegovina","Qatar","Switzerland"]},
-      C:{teams:["Brazil","Morocco","Haiti","Scotland"]},
-      D:{teams:["USA","Paraguay","Australia","Turkey"]},
-      E:{teams:["Germany","Curacao","Ivory Coast","Ecuador"]},
-      F:{teams:["Netherlands","Japan","Sweden","Tunisia"]},
-      G:{teams:["Belgium","Egypt","Iran","New Zealand"]},
-      H:{teams:["Spain","Cape Verde","Saudi Arabia","Uruguay"]},
-      I:{teams:["France","Senegal","Iraq","Norway"]},
-      J:{teams:["Argentina","Algeria","Austria","Jordan"]},
-      K:{teams:["Portugal","DR Congo","Uzbekistan","Colombia"]},
-      L:{teams:["England","Croatia","Ghana","Panama"]},
-    };
+const ALL_TEAMS = ["Algeria","Argentina","Australia","Austria","Belgium","Bosnia and Herzegovina","Brazil","Canada","Cape Verde","Czechia","Colombia","Croatia","Curacao","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Haiti","Iran","Iraq","Ivory Coast","Japan","Jordan","Mexico","Morocco","Netherlands","New Zealand","Norway","Panama","Paraguay","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","South Africa","South Korea","Spain","Sweden","Switzerland","Tunisia","Turkey","Uruguay","USA","Uzbekistan"];
 
-    const FIXTURES = [
-      {id:1,group:"A",home:"Mexico",away:"South Africa",date:"2026-06-11",time:"19:00"},
-      {id:2,group:"A",home:"South Korea",away:"Czechia",date:"2026-06-11",time:"02:00+1"},
-      {id:3,group:"B",home:"Canada",away:"Bosnia and Herzegovina",date:"2026-06-12",time:"19:00"},
-      {id:4,group:"D",home:"USA",away:"Paraguay",date:"2026-06-12",time:"01:00+1"},
-      {id:5,group:"B",home:"Qatar",away:"Switzerland",date:"2026-06-13",time:"19:00"},
-      {id:6,group:"C",home:"Brazil",away:"Morocco",date:"2026-06-13",time:"23:00"},
-      {id:7,group:"C",home:"Haiti",away:"Scotland",date:"2026-06-13",time:"01:00+1"},
-      {id:8,group:"D",home:"Australia",away:"Turkey",date:"2026-06-13",time:"04:00+1"},
-      {id:9,group:"E",home:"Germany",away:"Curacao",date:"2026-06-14",time:"18:00"},
-      {id:10,group:"F",home:"Netherlands",away:"Japan",date:"2026-06-14",time:"21:00"},
-      {id:11,group:"E",home:"Ivory Coast",away:"Ecuador",date:"2026-06-14",time:"00:00+1"},
-      {id:12,group:"F",home:"Sweden",away:"Tunisia",date:"2026-06-14",time:"04:00+1"},
-      {id:13,group:"H",home:"Spain",away:"Cape Verde",date:"2026-06-15",time:"17:00"},
-      {id:14,group:"G",home:"Belgium",away:"Egypt",date:"2026-06-15",time:"23:00"},
-      {id:15,group:"H",home:"Saudi Arabia",away:"Uruguay",date:"2026-06-15",time:"23:00"},
-      {id:16,group:"G",home:"Iran",away:"New Zealand",date:"2026-06-15",time:"05:00+1"},
-      {id:17,group:"I",home:"France",away:"Senegal",date:"2026-06-16",time:"20:00"},
-      {id:18,group:"I",home:"Iraq",away:"Norway",date:"2026-06-16",time:"23:00"},
-      {id:19,group:"J",home:"Argentina",away:"Algeria",date:"2026-06-16",time:"03:00+1"},
-      {id:20,group:"J",home:"Austria",away:"Jordan",date:"2026-06-16",time:"08:00+1"},
-      {id:21,group:"K",home:"Portugal",away:"DR Congo",date:"2026-06-17",time:"19:00"},
-      {id:22,group:"L",home:"England",away:"Croatia",date:"2026-06-17",time:"22:00"},
-      {id:23,group:"L",home:"Ghana",away:"Panama",date:"2026-06-17",time:"00:00+1"},
-      {id:24,group:"K",home:"Uzbekistan",away:"Colombia",date:"2026-06-17",time:"04:00+1"},
-      {id:25,group:"A",home:"Czechia",away:"South Africa",date:"2026-06-18",time:"17:00"},
-      {id:26,group:"B",home:"Switzerland",away:"Bosnia and Herzegovina",date:"2026-06-18",time:"23:00"},
-      {id:27,group:"B",home:"Canada",away:"Qatar",date:"2026-06-18",time:"02:00+1"},
-      {id:28,group:"A",home:"Mexico",away:"South Korea",date:"2026-06-18",time:"03:00+1"},
-      {id:29,group:"C",home:"Scotland",away:"Morocco",date:"2026-06-19",time:"23:00"},
-      {id:30,group:"D",home:"USA",away:"Australia",date:"2026-06-19",time:"23:00"},
-      {id:31,group:"C",home:"Brazil",away:"Haiti",date:"2026-06-19",time:"02:00+1"},
-      {id:32,group:"D",home:"Turkey",away:"Paraguay",date:"2026-06-19",time:"08:00+1"},
-      {id:33,group:"F",home:"Netherlands",away:"Sweden",date:"2026-06-20",time:"19:00"},
-      {id:34,group:"E",home:"Germany",away:"Ivory Coast",date:"2026-06-20",time:"21:00"},
-      {id:35,group:"E",home:"Ecuador",away:"Curacao",date:"2026-06-20",time:"04:00+1"},
-      {id:36,group:"F",home:"Tunisia",away:"Japan",date:"2026-06-20",time:"06:00+1"},
-      {id:37,group:"H",home:"Spain",away:"Saudi Arabia",date:"2026-06-21",time:"17:00"},
-      {id:38,group:"G",home:"Belgium",away:"Iran",date:"2026-06-21",time:"23:00"},
-      {id:39,group:"H",home:"Uruguay",away:"Cape Verde",date:"2026-06-21",time:"23:00"},
-      {id:40,group:"G",home:"New Zealand",away:"Egypt",date:"2026-06-21",time:"05:00+1"},
-      {id:41,group:"J",home:"Argentina",away:"Austria",date:"2026-06-22",time:"19:00"},
-      {id:42,group:"I",home:"France",away:"Iraq",date:"2026-06-22",time:"22:00"},
-      {id:43,group:"I",home:"Norway",away:"Senegal",date:"2026-06-22",time:"01:00+1"},
-      {id:44,group:"J",home:"Jordan",away:"Algeria",date:"2026-06-22",time:"07:00+1"},
-      {id:45,group:"K",home:"Portugal",away:"Uzbekistan",date:"2026-06-23",time:"19:00"},
-      {id:46,group:"L",home:"England",away:"Ghana",date:"2026-06-23",time:"21:00"},
-      {id:47,group:"L",home:"Panama",away:"Croatia",date:"2026-06-23",time:"00:00+1"},
-      {id:48,group:"K",home:"Colombia",away:"DR Congo",date:"2026-06-23",time:"04:00+1"},
-      {id:49,group:"B",home:"Switzerland",away:"Canada",date:"2026-06-24",time:"23:00"},
-      {id:50,group:"B",home:"Bosnia and Herzegovina",away:"Qatar",date:"2026-06-24",time:"23:00"},
-      {id:51,group:"C",home:"Scotland",away:"Brazil",date:"2026-06-24",time:"23:00"},
-      {id:52,group:"C",home:"Morocco",away:"Haiti",date:"2026-06-24",time:"23:00"},
-      {id:53,group:"A",home:"Czechia",away:"Mexico",date:"2026-06-24",time:"03:00+1"},
-      {id:54,group:"A",home:"South Africa",away:"South Korea",date:"2026-06-24",time:"03:00+1"},
-      {id:55,group:"E",home:"Ecuador",away:"Germany",date:"2026-06-25",time:"21:00"},
-      {id:56,group:"E",home:"Curacao",away:"Ivory Coast",date:"2026-06-25",time:"21:00"},
-      {id:57,group:"F",home:"Japan",away:"Sweden",date:"2026-06-25",time:"01:00+1"},
-      {id:58,group:"F",home:"Tunisia",away:"Netherlands",date:"2026-06-25",time:"01:00+1"},
-      {id:59,group:"D",home:"Turkey",away:"USA",date:"2026-06-25",time:"06:00+1"},
-      {id:60,group:"D",home:"Paraguay",away:"Australia",date:"2026-06-25",time:"06:00+1"},
-      {id:61,group:"I",home:"Norway",away:"France",date:"2026-06-26",time:"20:00"},
-      {id:62,group:"I",home:"Senegal",away:"Iraq",date:"2026-06-26",time:"20:00"},
-      {id:63,group:"H",home:"Cape Verde",away:"Saudi Arabia",date:"2026-06-26",time:"02:00+1"},
-      {id:64,group:"H",home:"Uruguay",away:"Spain",date:"2026-06-26",time:"02:00+1"},
-      {id:65,group:"G",home:"Egypt",away:"Iran",date:"2026-06-26",time:"07:00+1"},
-      {id:66,group:"G",home:"New Zealand",away:"Belgium",date:"2026-06-26",time:"07:00+1"},
-      {id:67,group:"L",home:"Panama",away:"England",date:"2026-06-27",time:"22:00"},
-      {id:68,group:"L",home:"Croatia",away:"Ghana",date:"2026-06-27",time:"22:00"},
-      {id:69,group:"K",home:"Colombia",away:"Portugal",date:"2026-06-27",time:"02:30+1"},
-      {id:70,group:"K",home:"DR Congo",away:"Uzbekistan",date:"2026-06-27",time:"02:30+1"},
-      {id:71,group:"J",home:"Algeria",away:"Austria",date:"2026-06-27",time:"04:00+1"},
-      {id:72,group:"J",home:"Jordan",away:"Argentina",date:"2026-06-27",time:"04:00+1"},
-    ];
+const FLAGS = {
+  Mexico:"\U0001f1f2\U0001f1fd","South Africa":"\U0001f1ff\U0001f1e6","South Korea":"\U0001f1f0\U0001f1f7",Czechia:"\U0001f1e8\U0001f1ff",
+  Canada:"\U0001f1e8\U0001f1e6","Bosnia and Herzegovina":"\U0001f1e7\U0001f1e6",Qatar:"\U0001f1f6\U0001f1e6",Switzerland:"\U0001f1e8\U0001f1ed",
+  Brazil:"\U0001f1e7\U0001f1f7",Morocco:"\U0001f1f2\U0001f1e6",Haiti:"\U0001f1ed\U0001f1f9",Scotland:"\U0001F3F4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC73\uDB40\uDC63\uDB40\uDC74\uDB40\uDC7F",
+  USA:"\U0001f1fa\U0001f1f8",Paraguay:"\U0001f1f5\U0001f1fe",Australia:"\U0001f1e6\U0001f1fa",Turkey:"\U0001f1f9\U0001f1f7",
+  Germany:"\U0001f1e9\U0001f1ea",Curacao:"\U0001f1e8\U0001f1fc","Ivory Coast":"\U0001f1e8\U0001f1ee",Ecuador:"\U0001f1ea\U0001f1e8",
+  Netherlands:"\U0001f1f3\U0001f1f1",Japan:"\U0001f1ef\U0001f1f5",Sweden:"\U0001f1f8\U0001f1ea",Tunisia:"\U0001f1f9\U0001f1f3",
+  Belgium:"\U0001f1e7\U0001f1ea",Egypt:"\U0001f1ea\U0001f1ec",Iran:"\U0001f1ee\U0001f1f7","New Zealand":"\U0001f1f3\U0001f1ff",
+  Spain:"\U0001f1ea\U0001f1f8","Cape Verde":"\U0001f1e8\U0001f1fb","Saudi Arabia":"\U0001f1f8\U0001f1e6",Uruguay:"\U0001f1fa\U0001f1fe",
+  France:"\U0001f1eb\U0001f1f7",Senegal:"\U0001f1f8\U0001f1f3",Iraq:"\U0001f1ee\U0001f1f6",Norway:"\U0001f1f3\U0001f1f4",
+  Argentina:"\U0001f1e6\U0001f1f7",Algeria:"\U0001f1e9\U0001f1ff",Austria:"\U0001f1e6\U0001f1f9",Jordan:"\U0001f1ef\U0001f1f4",
+  Portugal:"\U0001f1f5\U0001f1f9","DR Congo":"\U0001f1e8\U0001f1e9",Uzbekistan:"\U0001f1fa\U0001f1ff",Colombia:"\U0001f1e8\U0001f1f4",
+  England:"\U0001F3F4\uDB40\uDC67\uDB40\uDC62\uDB40\uDC65\uDB40\uDC6E\uDB40\uDC67\uDB40\uDC7F",Croatia:"\U0001f1ed\U0001f1f7",Ghana:"\U0001f1ec\U0001f1ed",Panama:"\U0001f1f5\U0001f1e6",
+};
 
-    const FLAGS = {
-      Mexico:"🇲🇽","South Africa":"🇿🇦","South Korea":"🇰🇷",Czechia:"🇨🇿",
-      Canada:"🇨🇦","Bosnia and Herzegovina":"🇧🇦",Qatar:"🇶🇦",Switzerland:"🇨🇭",
-      Brazil:"🇧🇷",Morocco:"🇲🇦",Haiti:"🇭🇹",Scotland:"🏴󠁧󠁢󠁳󠁣󠁴󠁿",
-      USA:"🇺🇸",Paraguay:"🇵🇾",Australia:"🇦🇺",Turkey:"🇹🇷",
-      Germany:"🇩🇪",Curacao:"🇨🇼","Ivory Coast":"🇨🇮",Ecuador:"🇪🇨",
-      Netherlands:"🇳🇱",Japan:"🇯🇵",Sweden:"🇸🇪",Tunisia:"🇹🇳",
-      Belgium:"🇧🇪",Egypt:"🇪🇬",Iran:"🇮🇷","New Zealand":"🇳🇿",
-      Spain:"🇪🇸","Cape Verde":"🇨🇻","Saudi Arabia":"🇸🇦",Uruguay:"🇺🇾",
-      France:"🇫🇷",Senegal:"🇸🇳",Iraq:"🇮🇶",Norway:"🇳🇴",
-      Argentina:"🇦🇷",Algeria:"🇩🇿",Austria:"🇦🇹",Jordan:"🇯🇴",
-      Portugal:"🇵🇹","DR Congo":"🇨🇩",Uzbekistan:"🇺🇿",Colombia:"🇨🇴",
-      England:"🏴󠁧󠁢󠁥󠁮󠁧󠁿",Croatia:"🇭🇷",Ghana:"🇬🇭",Panama:"🇵🇦",
-    };
+const css = `
+  .app{max-width:720px;margin:0 auto;padding-bottom:3rem;background:#f0f7f0;min-height:100vh}
+  .header{background:linear-gradient(135deg,#2e7d32 0%,#1b5e20 50%,#0a3d0a 100%);color:#fff;border-radius:0 0 20px 20px;margin-bottom:1.5rem;overflow:hidden}
+  .header-top{padding:1.25rem 1.5rem 0.75rem}
+  .header-accent{height:6px;background:linear-gradient(90deg,#f9a825 0%,#e65100 33%,#ad1457 66%,#00796b 100%)}
+  .federation-name{font-size:11px;letter-spacing:2px;text-transform:uppercase;opacity:.8;margin-bottom:3px;font-weight:700}
+  .app-title{font-size:23px;font-weight:800;margin-bottom:2px}
+  .app-sub{font-size:13px;opacity:.75}
+  .schools-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .school-chip{background:rgba(255,255,255,0.18);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.3px}
+  .nav{display:flex;gap:6px;margin:1rem 0 0;flex-wrap:wrap;padding-bottom:1rem}
+  .nav-btn{padding:7px 14px;border-radius:20px;border:2px solid rgba(255,255,255,0.35);cursor:pointer;font-size:13px;font-weight:700;background:transparent;color:#fff;font-family:inherit;transition:all .15s}
+  .nav-btn:hover{background:rgba(255,255,255,0.15)}
+  .nav-btn.active{background:#fff;color:#2e7d32;border-color:#fff}
+  .content{padding:0 1rem}
+  .card{background:#fff;border:1.5px solid #dcedc8;border-radius:14px;padding:1.1rem 1.25rem;margin-bottom:12px}
+  .card-accent{border-left:5px solid #2e7d32}
+  .section-title{font-size:15px;font-weight:800;color:#2e7d32;margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+  .input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #c5e1a5;font-size:14px;margin-bottom:10px;font-family:inherit;outline:none}
+  .input:focus{border-color:#2e7d32}
+  .btn{background:#2e7d32;color:#fff;border:none;padding:11px 22px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit}
+  .btn:hover{background:#1b5e20}
+  .btn-yellow{background:#f9a825;color:#fff}.btn-orange{background:#e65100}.btn-red{background:#c62828}
+  .btn-gray{background:#bbb;cursor:not-allowed}
+  .err{color:#c62828;font-size:13px;margin-bottom:8px;font-weight:600}
+  .ok{color:#2e7d32;font-size:13px;font-weight:600}
+  .fix-row{padding:10px 0;border-bottom:1px solid #f1f8e9}
+  .fix-row:last-child{border-bottom:none}
+  .fix-label{font-size:13px;font-weight:700;margin-bottom:7px;color:#333}
+  .pred-btns{display:flex;gap:6px;flex-wrap:wrap}
+  .pred-btn{padding:5px 10px;border-radius:8px;border:2px solid #c5e1a5;background:#fff;color:#888;font-size:12px;cursor:pointer;font-weight:700;font-family:inherit;transition:all .12s}
+  .pred-btn:hover{border-color:#2e7d32;color:#2e7d32}
+  .pred-btn.selected{border-color:#2e7d32;background:#2e7d32;color:#fff}
+  .lb-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f1f8e9;cursor:pointer}
+  .lb-row:hover{background:#f9fdf9}
+  .lb-row:last-child{border-bottom:none}
+  .lb-row.gold{background:#fffde7;border-radius:8px;padding:9px 8px}
+  .badge{background:#2e7d32;color:#fff;border-radius:20px;padding:3px 11px;font-size:12px;font-weight:700;display:inline-block}
+  .badge-green{background:#43a047}.badge-gray{background:#bbb}
+  .pill{display:inline-block;background:#e8f5e9;color:#2e7d32;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700}
+  .group-tab{padding:5px 12px;border-radius:16px;border:1.5px solid #c5e1a5;background:#fff;color:#888;font-size:12px;cursor:pointer;font-weight:700;font-family:inherit}
+  .group-tab.active{border-color:#2e7d32;background:#2e7d32;color:#fff}
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:1rem 0}
+  .stat-card{background:#fff;border-radius:12px;padding:.85rem 1rem;text-align:center;border:1.5px solid #dcedc8}
+  .stat-val{font-size:22px;font-weight:800;color:#2e7d32}
+  .stat-label{font-size:11px;color:#546e7a;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+  .progress-bar{background:#dcedc8;border-radius:8px;height:10px;overflow:hidden;margin-top:10px}
+  .progress-fill{height:100%;background:linear-gradient(90deg,#2e7d32,#f9a825);border-radius:8px;transition:width .3s}
+  .alert{border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:10px}
+  .alert-green-soft{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7}
+  .alert-green{background:#e8f5e9;color:#1b5e20;border:1px solid #a5d6a7}
+  .alert-orange{background:#fbe9e7;color:#bf360c;border:1px solid #ffab91}
+  .alert-warn{background:#fffde7;border:1px solid #ffe082;color:#6d4c00}
+  .date-header{font-size:13px;font-weight:800;color:#2e7d32;text-transform:uppercase;letter-spacing:.8px;padding:10px 0 6px;border-bottom:2px solid #dcedc8;margin-bottom:8px}
+  .fix-card{background:#fff;border:1.5px solid #dcedc8;border-radius:12px;padding:10px 14px;margin-bottom:8px;cursor:pointer}
+  .fix-card:hover{border-color:#a5d6a7}
+  .bar-bg{flex:1;background:#f1f8e9;border-radius:4px;height:7px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:4px}
+  .tabs{display:flex;gap:8px;margin-top:12px}
+  .fixtures-sticky{position:sticky;top:0;z-index:10;background:#f0f7f0;padding-bottom:8px}
+  .spin{width:36px;height:36px;border:4px solid #dcedc8;border-top-color:#2e7d32;border-radius:50%;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+`;
 
-    // ─── STYLES ───────────────────────────────────────────────────────────────
-    const css = `
-      .app { max-width: 720px; margin: 0 auto; padding-bottom: 3rem; background: #f0f7f0; min-height: 100vh; }
-      .header { background: #2e7d32; color: #fff; border-radius: 0 0 20px 20px; margin-bottom: 1.5rem; overflow: hidden; }
-      .header-top { padding: 1.25rem 1.5rem 0.75rem; }
-      .header-accent { height: 6px; background: linear-gradient(90deg, #f9a825 0%, #e65100 33%, #ad1457 66%, #00796b 100%); }
-      .federation-name { font-size: 11px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.8; margin-bottom: 3px; font-weight: 700; }
-      .app-title { font-size: 23px; font-weight: 800; margin-bottom: 2px; }
-      .app-sub { font-size: 13px; opacity: 0.75; }
-      .schools-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-      .school-chip { background: rgba(255,255,255,0.18); border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
-      .nav { display: flex; gap: 6px; margin: 1rem 0 0; flex-wrap: wrap; padding-bottom: 1rem; }
-      .nav-btn { padding: 7px 14px; border-radius: 20px; border: 2px solid rgba(255,255,255,0.35); cursor: pointer; font-size: 13px; font-weight: 700; background: transparent; color: #fff; font-family: inherit; transition: all 0.15s; }
-      .nav-btn:hover { background: rgba(255,255,255,0.15); }
-      .nav-btn.active { background: #fff; color: #2e7d32; border-color: #fff; }
-      .content { padding: 0 1rem; }
-      .card { background: #fff; border: 1.5px solid #dcedc8; border-radius: 14px; padding: 1.1rem 1.25rem; margin-bottom: 12px; }
-      .card-accent { border-left: 5px solid #2e7d32; }
-      .section-title { font-size: 15px; font-weight: 800; color: #2e7d32; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
-      .input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1.5px solid #c5e1a5; font-size: 14px; margin-bottom: 10px; font-family: inherit; outline: none; }
-      .input:focus { border-color: #2e7d32; }
-      .btn { background: #2e7d32; color: #fff; border: none; padding: 11px 22px; border-radius: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; }
-      .btn:hover { background: #1b5e20; }
-      .btn-yellow { background: #f9a825; color: #fff; } .btn-yellow:hover { background: #e65100; }
-      .btn-orange { background: #e65100; } .btn-red { background: #c62828; }
-      .btn-gray { background: #bbb; cursor: not-allowed; }
-      .err { color: #c62828; font-size: 13px; margin-bottom: 8px; font-weight: 600; }
-      .ok { color: #2e7d32; font-size: 13px; font-weight: 600; }
-      .fix-row { padding: 10px 0; border-bottom: 1px solid #f1f8e9; }
-      .fix-row:last-child { border-bottom: none; }
-      .fix-label { font-size: 13px; font-weight: 700; margin-bottom: 7px; color: #333; }
-      .pred-btns { display: flex; gap: 6px; flex-wrap: wrap; }
-      .pred-btn { padding: 5px 10px; border-radius: 8px; border: 2px solid #c5e1a5; background: #fff; color: #888; font-size: 12px; cursor: pointer; font-weight: 700; font-family: inherit; transition: all 0.12s; }
-      .pred-btn:hover { border-color: #2e7d32; color: #2e7d32; }
-      .pred-btn.selected { border-color: #2e7d32; background: #2e7d32; color: #fff; }
-      .lb-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f1f8e9; }
-      .lb-row:last-child { border-bottom: none; }
-      .lb-row.gold { background: #fffde7; border-radius: 8px; padding: 9px 8px; }
-      .badge { background: #2e7d32; color: #fff; border-radius: 20px; padding: 3px 11px; font-size: 12px; font-weight: 700; display: inline-block; }
-      .badge-green { background: #43a047; } .badge-gray { background: #bbb; }
-      .pill { display: inline-block; background: #e8f5e9; color: #2e7d32; border-radius: 20px; padding: 3px 12px; font-size: 12px; font-weight: 700; }
-      .group-tab { padding: 5px 12px; border-radius: 16px; border: 1.5px solid #c5e1a5; background: #fff; color: #888; font-size: 12px; cursor: pointer; font-weight: 700; font-family: inherit; }
-      .group-tab.active { border-color: #2e7d32; background: #2e7d32; color: #fff; }
-      .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 10px; margin: 1rem 0; }
-      .stat-card { background: #fff; border-radius: 12px; padding: 0.85rem 1rem; text-align: center; border: 1.5px solid #dcedc8; }
-      .stat-val { font-size: 22px; font-weight: 800; color: #2e7d32; }
-      .stat-label { font-size: 11px; color: #546e7a; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
-      .progress-bar { background: #dcedc8; border-radius: 8px; height: 10px; overflow: hidden; margin-top: 10px; }
-      .progress-fill { height: 100%; background: linear-gradient(90deg, #2e7d32, #f9a825); border-radius: 8px; transition: width 0.3s; }
-      .alert { border-radius: 10px; padding: 10px 14px; font-size: 13px; font-weight: 600; margin-bottom: 10px; }
-      .alert-green-soft { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
-      .alert-green { background: #e8f5e9; color: #1b5e20; border: 1px solid #a5d6a7; }
-      .alert-yellow { background: #fffde7; color: #6d4c00; border: 1px solid #ffe082; }
-      .alert-orange { background: #fbe9e7; color: #bf360c; border: 1px solid #ffab91; }
-      .alert-warn { background: #fffde7; border: 1px solid #ffe082; color: #6d4c00; }
-      .date-header { font-size: 13px; font-weight: 800; color: #2e7d32; text-transform: uppercase; letter-spacing: 0.8px; padding: 10px 0 6px; border-bottom: 2px solid #dcedc8; margin-bottom: 8px; }
-      .fix-card { background: #fff; border: 1.5px solid #dcedc8; border-radius: 12px; padding: 10px 14px; margin-bottom: 8px; }
-      .bar-bg { flex: 1; background: #f1f8e9; border-radius: 4px; height: 7px; overflow: hidden; }
-      .bar-fill { height: 100%; border-radius: 4px; }
-      .tabs { display: flex; gap: 8px; margin-top: 12px; }
-      .spinner { display: flex; justify-content: center; align-items: center; padding: 3rem; }
-      .spin { width: 36px; height: 36px; border: 4px solid #dcedc8; border-top-color: #2e7d32; border-radius: 50%; animation: spin 0.8s linear infinite; }
-      @keyframes spin { to { transform: rotate(360deg); } }
-      .school-badge { display: inline-block; background: #e8f5e9; color: #2e7d32; border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 700; }
-    `;
+function App() {
+  const [view, setView] = useState("home");
+  const [users, setUsers] = useState([]);
+  const [results, setResults] = useState({});
+  const [session, setSession] = useState(null);
+  const [adminMode, setAdminMode] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-    // ─── APP ──────────────────────────────────────────────────────────────────
-    function App() {
-      const [view, setView] = useState("home");
-      const [users, setUsers] = useState([]);
-      const [results, setResults] = useState({});
-      const [session, setSession] = useState(null);
-      const [adminMode, setAdminMode] = useState(false);
-      const [loading, setLoading] = useState(true);
+  const fetchData = useCallback(async () => {
+    try {
+      const [{data:uData},{data:rData}] = await Promise.all([
+        sb.from("blossom_users").select("*"),
+        sb.from("blossom_results").select("*"),
+      ]);
+      if (uData) setUsers(uData);
+      if (rData) { const m={}; rData.forEach(r=>m[r.fixture_id]=r.result); setResults(m); }
+    } catch(e) { console.error(e); }
+    setLoading(false);
+  }, []);
 
-      const fetchData = useCallback(async () => {
-        try {
-          const [{ data: uData }, { data: rData }] = await Promise.all([
-            sb.from("blossom_users").select("*"),
-            sb.from("blossom_results").select("*"),
-          ]);
-          if (uData) setUsers(uData);
-          if (rData) {
-            const rMap = {};
-            rData.forEach(r => rMap[r.fixture_id] = r.result);
-            setResults(rMap);
-          }
-        } catch (e) { console.error(e); }
-        setLoading(false);
-      }, []);
+  useEffect(()=>{fetchData();},[fetchData]);
+  useEffect(()=>{
+    const u=sb.channel("bf-users").on("postgres_changes",{event:"*",schema:"public",table:"blossom_users"},fetchData).subscribe();
+    const r=sb.channel("bf-results").on("postgres_changes",{event:"*",schema:"public",table:"blossom_results"},fetchData).subscribe();
+    return ()=>{sb.removeChannel(u);sb.removeChannel(r);};
+  },[fetchData]);
 
-      useEffect(() => { fetchData(); }, [fetchData]);
+  const saveUser   = async d=>{await sb.from("blossom_users").upsert(d,{onConflict:"email"});await fetchData();};
+  const saveResult = async (fid,res)=>{await sb.from("blossom_results").upsert({fixture_id:fid,result:res,updated_at:new Date().toISOString()},{onConflict:"fixture_id"});await fetchData();};
+  const deleteUser = async email=>{await sb.from("blossom_users").delete().eq("email",email);await fetchData();};
 
-      useEffect(() => {
-        const uSub = sb.channel("blossom-users-changes")
-          .on("postgres_changes", { event: "*", schema: "public", table: "blossom_users" }, fetchData)
-          .subscribe();
-        const rSub = sb.channel("blossom-results-changes")
-          .on("postgres_changes", { event: "*", schema: "public", table: "blossom_results" }, fetchData)
-          .subscribe();
-        return () => { sb.removeChannel(uSub); sb.removeChannel(rSub); };
-      }, [fetchData]);
+  const scoreUser = preds=>{
+    let pts=0,correct=0;
+    for(const [fid,pred] of Object.entries(preds||{}))
+      if(results[fid]&&results[fid]===pred){pts+=3;correct++;}
+    return {pts,correct};
+  };
 
-      const saveUser = async (userData) => {
-        await sb.from("blossom_users").upsert(userData, { onConflict: "email" });
-        await fetchData();
-      };
+  const leaderboard = users.map(u=>({...u,predictions:u.predictions||{},...scoreUser(u.predictions)})).sort((a,b)=>b.pts-a.pts||b.correct-a.correct);
+  const sessionUser = session?users.find(u=>u.email===session):null;
 
-      const saveResult = async (fixtureId, result) => {
-        await sb.from("blossom_results").upsert({ fixture_id: fixtureId, result, updated_at: new Date().toISOString() }, { onConflict: "fixture_id" });
-        await fetchData();
-      };
+  const Header=()=>(
+    <div className="header">
+      <div className="header-top">
+        <div className="federation-name">&#127800; Blossom Federation</div>
+        <div className="app-title">World Cup 2026 Predictor &#9917;</div>
+        <div className="app-sub">Predict all 72 group stage fixtures &mdash; best score wins!</div>
+        <div className="schools-row">{SCHOOLS.map(s=><span key={s} className="school-chip">{s}</span>)}</div>
+        <div className="nav">
+          {[["home","&#127968; Home"],["predict","&#128221; Predict"],["fixtures","&#128197; Fixtures"],["leaderboard","&#127942; Leaderboard"],["admin","&#128295; Admin"]].map(([v,label])=>(
+            <button key={v} className={`nav-btn${view===v?" active":""}`} onClick={()=>setView(v)} dangerouslySetInnerHTML={{__html:label}}/>
+          ))}
+        </div>
+      </div>
+      <div className="header-accent"/>
+    </div>
+  );
 
-      const deleteUser = async (email) => {
-        await sb.from("blossom_users").delete().eq("email", email);
-        await fetchData();
-      };
+  if(loading) return(<><style>{css}</style><div className="app"><Header/><div style={{display:"flex",justifyContent:"center",padding:"3rem"}}><div className="spin"/></div></div></>);
 
-      const closed = new Date() >= DEADLINE;
+  return(
+    <><style>{css}</style>
+    <div className="app">
+      <Header/>
+      <div className="content">
+        {view==="home"        &&<HomeView setView={setView} leaderboard={leaderboard} results={results}/>}
+        {view==="predict"     &&<PredictView users={users} saveUser={saveUser} session={session} setSession={setSession} closed={new Date()>=DEADLINE} sessionUser={sessionUser}/>}
+        {view==="fixtures"    &&<FixturesView results={results} leaderboard={leaderboard} saveResult={saveResult}/>}
+        {view==="leaderboard" &&<LeaderboardView leaderboard={leaderboard} results={results}/>}
+        {view==="admin"       &&<AdminView results={results} saveResult={saveResult} adminMode={adminMode} setAdminMode={setAdminMode} users={users} saveUser={saveUser} deleteUser={deleteUser}/>}
+        <div style={{textAlign:"center",fontSize:11,color:"#a5d6a7",marginTop:"2rem",paddingBottom:"0.5rem"}}>v1</div>
+      </div>
+    </div></>
+  );
+}
 
-      const scoreUser = (preds) => {
-        let pts = 0, correct = 0;
-        for (const [fid, pred] of Object.entries(preds || {}))
-          if (results[fid] && results[fid] === pred) { pts += 3; correct++; }
-        return { pts, correct };
-      };
+function ProgressChart({leaderboard,results}){
+  const [highlighted,setHighlighted]=useState(null);
+  const COLORS=["#2e7d32","#f9a825","#00796b","#ad1457","#e65100","#1565c0","#6a1b9a","#00838f","#558b2f","#c62828","#4527a0","#e65100","#2e7d32","#f9a825","#00796b","#ad1457"];
+  const played=FIXTURES.filter(f=>results[f.id]);
+  const series=leaderboard.map((u,i)=>{
+    let pts=0;const points=[0];
+    played.forEach(f=>{if(u.predictions[f.id]&&results[f.id]===u.predictions[f.id])pts+=3;points.push(pts);});
+    return{name:u.name,points,color:COLORS[i%COLORS.length]};
+  });
+  const maxPts=Math.max(...series.map(s=>s.points[s.points.length-1]),3);
+  const mc=played.length;
+  const W=600,H=300,PL=36,PR=12,PT=12,PB=28,cW=W-PL-PR,cH=H-PT-PB;
+  const xP=i=>PL+(mc===0?0:(i/mc)*cW),yP=v=>PT+cH-(v/maxPts)*cH;
+  const step=maxPts<=9?3:maxPts<=18?6:maxPts<=30?9:12;
+  const yT=[];for(let v=0;v<=maxPts;v+=step)yT.push(v);
+  const xS=mc<=12?2:mc<=24?4:6;const xT=[];for(let i=0;i<=mc;i+=xS)xT.push(i);
+  const toggle=n=>setHighlighted(h=>h===n?null:n);
+  return(
+    <div style={{overflowX:"auto"}}>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{width:"100%",minWidth:320,fontFamily:"Nunito,sans-serif"}}>
+        {yT.map(v=>(<g key={v}><line x1={PL} y1={yP(v)} x2={W-PR} y2={yP(v)} stroke="#f1f8e9" strokeWidth="1"/><text x={PL-4} y={yP(v)+4} textAnchor="end" fontSize="9" fill="#aaa">{v}</text></g>))}
+        {xT.map(i=>(<text key={i} x={xP(i)} y={H-8} textAnchor="middle" fontSize="9" fill="#aaa">{i}</text>))}
+        <text x={PL-28} y={PT+cH/2} textAnchor="middle" fontSize="9" fill="#888" transform={`rotate(-90,${PL-28},${PT+cH/2})`}>Points</text>
+        <text x={PL+cW/2} y={H-1} textAnchor="middle" fontSize="9" fill="#888">Matches played</text>
+        {highlighted&&series.filter(s=>s.name!==highlighted).map(s=>{const d=s.points.map((v,i)=>`${i===0?"M":"L"}${xP(i)},${yP(v)}`).join(" ");return<path key={s.name} d={d} fill="none" stroke={s.color} strokeWidth="1" strokeOpacity="0.12" strokeLinejoin="round" strokeLinecap="round"/>;})}
+        {series.filter(s=>!highlighted||s.name===highlighted).map(s=>{const hl=highlighted===s.name,d=s.points.map((v,i)=>`${i===0?"M":"L"}${xP(i)},${yP(v)}`).join(" ");return<path key={s.name} d={d} fill="none" stroke={s.color} strokeWidth={hl?3:1.5} strokeOpacity={hl?1:0.7} strokeLinejoin="round" strokeLinecap="round" style={{cursor:"pointer"}} onClick={()=>toggle(s.name)}/>;})}
+        {series.map(s=>{const last=s.points[s.points.length-1],hl=highlighted===s.name,dim=highlighted&&!hl;return<circle key={s.name} cx={xP(s.points.length-1)} cy={yP(last)} r={hl?4:2.5} fill={s.color} fillOpacity={dim?0.12:0.9} style={{cursor:"pointer"}} onClick={()=>toggle(s.name)}/>;})}
+        {highlighted&&series.filter(s=>s.name===highlighted).map(s=>{const last=s.points[s.points.length-1];return<text key={s.name} x={xP(s.points.length-1)+6} y={yP(last)+4} fontSize="10" fontWeight="700" fill={s.color}>{s.name}</text>;})}
+      </svg>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6,marginTop:8}}>
+        {series.map(s=>{const hl=highlighted===s.name,dim=highlighted&&!hl;return(<div key={s.name} onClick={()=>toggle(s.name)} style={{display:"flex",alignItems:"center",gap:4,fontSize:10,fontWeight:hl?800:600,color:dim?"#ccc":hl?s.color:"#555",cursor:"pointer",padding:"2px 6px",borderRadius:20,background:hl?"#f9fdf9":"transparent",border:hl?`1.5px solid ${s.color}`:"1.5px solid transparent"}}><div style={{width:12,height:3,borderRadius:2,background:dim?"#ddd":s.color}}/><span>{s.name}</span></div>);})}
+      </div>
+    </div>
+  );
+}
 
-      const leaderboard = users
-        .map(u => ({ ...u, predictions: u.predictions || {}, ...scoreUser(u.predictions) }))
-        .sort((a, b) => b.pts - a.pts || b.correct - a.correct);
-
-      const sessionUser = session ? users.find(u => u.email === session) : null;
-
-      const Header = () => (
-        <div className="header">
-          <div className="header-top">
-            <div className="federation-name">🌸 Blossom Federation</div>
-            <div className="app-title">World Cup 2026 Predictor ⚽</div>
-            <div className="app-sub">Predict all 72 group stage fixtures — best score wins!</div>
-            <div className="schools-row">
-              {SCHOOLS.map(s => <span key={s} className="school-chip">{s}</span>)}
+function HomeView({setView,leaderboard,results}){
+  const resultsIn=Object.keys(results).length;
+  const [showAll,setShowAll]=useState(false);
+  const teamPts={};ALL_TEAMS.forEach(t=>teamPts[t]=0);
+  leaderboard.forEach(u=>{
+    if(u.favourite_team_1)teamPts[u.favourite_team_1]=(teamPts[u.favourite_team_1]||0)+3;
+    if(u.favourite_team_2)teamPts[u.favourite_team_2]=(teamPts[u.favourite_team_2]||0)+2;
+    if(u.favourite_team_3)teamPts[u.favourite_team_3]=(teamPts[u.favourite_team_3]||0)+1;
+  });
+  const ranked=Object.entries(teamPts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
+  const max=ranked[0]?.[1]||1;
+  const visible=showAll?ranked:ranked.slice(0,5);
+  return(
+    <div>
+      <div className="card card-accent">
+        <div style={{fontSize:19,fontWeight:800,marginBottom:8,color:"#2e7d32"}}>Welcome, Blossom Federation! &#127757;</div>
+        <p style={{fontSize:14,color:"#555",lineHeight:1.65,marginBottom:12}}>Open to all staff across <strong>Daubeney</strong>, <strong>Lauriston</strong> and <strong>Sebright</strong>. Predict all 72 FIFA World Cup 2026 group stage matches. <strong>3 points</strong> per correct result &mdash; highest score wins!</p>
+        {new Date()>=DEADLINE?<div className="alert alert-warn">&#9200; Submissions are now <strong>closed</strong> &mdash; the tournament has begun!</div>:<div className="alert alert-green">&#9989; Submissions open until <strong>11 June 2026, 7:00 PM GMT</strong></div>}
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
+          {new Date()<DEADLINE&&<button className="btn" onClick={()=>setView("predict")}>&#128221; Submit My Predictions</button>}
+          <button className="btn btn-yellow" onClick={()=>setView("leaderboard")}>&#127942; Leaderboard</button>
+          <button className="btn" style={{background:"#00796b"}} onClick={()=>setView("fixtures")}>&#128197; Fixtures</button>
+        </div>
+      </div>
+      <div className="stat-grid">
+        {[["&#9917;","72","Group Fixtures"],["&#128101;",leaderboard.length,"Entries"],["&#128202;",`${resultsIn}/72`,"Results In"],["&#127885;","3 pts","Per Correct Pick"]].map(([icon,val,label])=>(
+          <div key={label} className="stat-card"><div style={{fontSize:22,marginBottom:4}} dangerouslySetInnerHTML={{__html:icon}}/><div className="stat-val">{val}</div><div className="stat-label">{label}</div></div>
+        ))}
+      </div>
+      {leaderboard.length>0&&resultsIn>0&&(<div className="card"><div className="section-title">&#128200; Points Progression</div><div style={{fontSize:12,color:"#546e7a",marginBottom:12}}>Click a name to highlight their line</div><ProgressChart leaderboard={leaderboard} results={results}/></div>)}
+      {leaderboard.length>0&&(
+        <div className="card">
+          <div className="section-title">&#127800; School Breakdown</div>
+          {SCHOOLS.map(school=>{const members=leaderboard.filter(u=>u.school===school),top=members[0];return(
+            <div key={school} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,padding:"8px 0",borderBottom:"1px solid #f1f8e9"}}>
+              <div style={{flex:1}}><div style={{fontSize:13,fontWeight:700,color:"#2e7d32"}}>{school}</div><div style={{fontSize:12,color:"#888",marginTop:2}}>{members.length} entr{members.length!==1?"ies":"y"}{top&&top.pts>0?` \u00b7 Leader: ${top.name} (${top.pts} pts)`:""}</div></div>
+              <div className="pill">{members.length}</div>
             </div>
-            <div className="nav">
-              {[["home","🏠 Home"],["predict","📝 Predict"],["fixtures","📅 Fixtures"],["leaderboard","🏆 Leaderboard"],["admin","🔧 Admin"]].map(([v,label]) => (
-                <button key={v} className={`nav-btn${view===v?" active":""}`} onClick={() => setView(v)}>{label}</button>
+          );})}
+        </div>
+      )}
+      {leaderboard.length>0&&leaderboard[0].pts>0&&(
+        <div className="card">
+          <div className="section-title">&#127942; Top 3 Overall</div>
+          {leaderboard.slice(0,3).map((u,i)=>(
+            <div key={u.email} className={`lb-row${i===0?" gold":""}`} style={{cursor:"default"}}>
+              <span style={{fontSize:20}}>{["&#129351;","&#129352;","&#129353;"][i]}</span>
+              <div style={{flex:1}}><div style={{fontSize:14,fontWeight:700}}>{u.name}</div><div style={{fontSize:11,color:"#aaa"}}>{u.school}</div></div>
+              <span className="badge">{u.pts} pts</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {leaderboard.length>0&&(
+        <div className="card">
+          <div className="section-title">&#10084;&#65039; Federation's Favourite Teams</div>
+          <div style={{fontSize:12,color:"#546e7a",marginBottom:12}}>3pts for 1st choice &middot; 2pts for 2nd &middot; 1pt for 3rd</div>
+          {visible.map(([team,pts],i)=>(
+            <div key={team} style={{display:"flex",alignItems:"center",gap:10,marginBottom:7}}>
+              <div style={{width:24,textAlign:"center",fontSize:i<3&&pts>0?16:13,fontWeight:700,color:pts>0?"#aaa":"#ddd"}}>{pts>0?(i===0?"&#129351;":i===1?"&#129352;":i===2?"&#129353;":i+1):i+1}</div>
+              <div style={{fontSize:13,fontWeight:pts>0?700:400,minWidth:140,color:pts>0?"#333":"#aaa"}}>{FLAGS[team]||"&#127987;"} {team}</div>
+              <div className="bar-bg" style={{flex:1}}><div className="bar-fill" style={{width:`${(pts/max)*100}%`,background:pts>0?"#2e7d32":"#ddd"}}/></div>
+              <div style={{fontSize:12,fontWeight:600,color:pts>0?"#2e7d32":"#bbb",minWidth:36,textAlign:"right"}}>{pts}pts</div>
+            </div>
+          ))}
+          <button onClick={()=>setShowAll(!showAll)} style={{marginTop:8,background:"none",border:"none",color:"#2e7d32",fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"inherit",padding:0}}>{showAll?"&#9650; Show less":"&#9660; Show all 48 teams"}</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PredictView({users,saveUser,session,setSession,closed,sessionUser}){
+  const [step,setStep]=useState(sessionUser?"form":"register");
+  const [email,setEmail]=useState("");
+  const [school,setSchool]=useState("");
+  const [schoolPw,setSchoolPw]=useState("");
+  const [submissionType,setSubmissionType]=useState("");
+  const [staffName,setStaffName]=useState("");
+  const [className,setClassName]=useState("");
+  const [displayName,setDisplayName]=useState("");
+  const [favTeam1,setFavTeam1]=useState(sessionUser?.favourite_team_1||"");
+  const [favTeam2,setFavTeam2]=useState(sessionUser?.favourite_team_2||"");
+  const [favTeam3,setFavTeam3]=useState(sessionUser?.favourite_team_3||"");
+  const [preds,setPreds]=useState(sessionUser?.predictions||{});
+  const [activeGroup,setActiveGroup]=useState("A");
+  const [err,setErr]=useState("");
+  const [saving,setSaving]=useState(false);
+  useEffect(()=>{if(sessionUser){setPreds(sessionUser.predictions||{});setStep("form");}},[sessionUser]);
+
+  const handleRegister=()=>{
+    setErr("");const e=email.trim().toLowerCase();
+    if(!e.endsWith(EMAIL_DOMAIN)){setErr(`Please use your Blossom school email (${EMAIL_DOMAIN})`);return;}
+    if(!school){setErr("Please select your school.");return;}
+    const ex=users.find(u=>u.email===e);if(ex?.submitted){setErr("This email has already submitted predictions.");return;}
+    const local=e.split("@")[0];setStaffName(local.replace(/[._-]/g," ").replace(/\b\w/g,c=>c.toUpperCase()).trim());setStep("password");
+  };
+  const handlePassword=()=>{setErr("");if(schoolPw.trim()!==SCHOOL_PASSWORDS[school]){setErr("Incorrect password for this school.");return;}setStep("class");};
+  const handleClassStep=()=>{
+    setErr("");if(!submissionType){setErr("Please choose an option.");return;}
+    if(submissionType==="class"&&!className.trim()){setErr("Please enter the class name.");return;}
+    setDisplayName(submissionType==="class"?className.trim():staffName);setSession(email.trim().toLowerCase());setStep("teams");
+  };
+  const setPred=(fid,val)=>setPreds(p=>({...p,[fid]:val}));
+  const total=Object.keys(preds).length,allDone=total===FIXTURES.length;
+  const handleSubmit=async()=>{
+    if(!allDone){setErr(`Please predict all 72 fixtures. You have done ${total}/72.`);return;}
+    setSaving(true);
+    await saveUser({email:email.trim().toLowerCase()||session,name:displayName||sessionUser?.name,user_type:"Staff",submission_type:submissionType||sessionUser?.submission_type,school:school||sessionUser?.school,favourite_team_1:favTeam1||sessionUser?.favourite_team_1,favourite_team_2:favTeam2||sessionUser?.favourite_team_2,favourite_team_3:favTeam3||sessionUser?.favourite_team_3,predictions:preds,submitted:true});
+    setSaving(false);
+  };
+  if(closed) return<div className="card card-accent"><div style={{fontSize:18,fontWeight:800,color:"#2e7d32",marginBottom:8}}>Submissions Closed</div><p style={{fontSize:14,color:"#555"}}>The deadline has passed. Check the leaderboard!</p></div>;
+  if(sessionUser?.submitted) return(<div className="card" style={{textAlign:"center",padding:"2rem 1.5rem"}}><div style={{fontSize:40,marginBottom:12}}>&#10003;</div><div style={{fontSize:20,fontWeight:800,color:"#2e7d32",marginBottom:8}}>Predictions Locked In!</div><p style={{fontSize:14,color:"#555",marginBottom:16}}>Thanks <strong>{sessionUser.name}</strong>! Your 72 predictions are saved.</p><div className="alert alert-green-soft">Good luck! Check the Fixtures page as results come in.</div></div>);
+  if(step==="register") return(
+    <div className="card card-accent">
+      <div className="section-title">Staff Sign-In</div>
+      <div className="alert alert-green-soft" style={{marginBottom:14}}>This predictor is for <strong>staff only</strong>. You can submit for yourself or on behalf of your class.</div>
+      <div style={{fontSize:13,fontWeight:700,color:"#2e7d32",marginBottom:6}}>Your school email</div>
+      <input className="input" placeholder={`yourname${EMAIL_DOMAIN}`} value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()}/>
+      <div style={{fontSize:13,fontWeight:700,color:"#2e7d32",marginBottom:8}}>Your school</div>
+      <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>{SCHOOLS.map(s=><button key={s} className={`pred-btn${school===s?" selected":""}`} style={{padding:"9px 14px",fontSize:13,textAlign:"left"}} onClick={()=>setSchool(s)}>&#127983; {s}</button>)}</div>
+      {err&&<div className="err">{err}</div>}
+      <button className="btn" onClick={handleRegister}>Next &rarr;</button>
+    </div>
+  );
+  if(step==="password") return(
+    <div className="card card-accent">
+      <div className="section-title">School Password</div>
+      <p style={{fontSize:13,color:"#666",marginBottom:14,lineHeight:1.6}}>Enter the staff password for <strong>{school}</strong>.</p>
+      <input className="input" type="password" placeholder="School password" value={schoolPw} onChange={e=>setSchoolPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handlePassword()}/>
+      {err&&<div className="err">{err}</div>}
+      <div style={{display:"flex",gap:8}}><button className="btn" style={{background:"#888"}} onClick={()=>setStep("register")}>&larr; Back</button><button className="btn" onClick={handlePassword}>Verify &rarr;</button></div>
+    </div>
+  );
+  if(step==="class") return(
+    <div className="card card-accent">
+      <div className="section-title">Who is this entry for?</div>
+      <p style={{fontSize:13,color:"#666",marginBottom:14,lineHeight:1.6}}>Submit for yourself or on behalf of your class.</p>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+        <button className={`pred-btn${submissionType==="self"?" selected":""}`} style={{padding:"12px 16px",fontSize:13,textAlign:"left",borderRadius:10}} onClick={()=>setSubmissionType("self")}><div style={{fontWeight:800}}>Myself</div><div style={{fontSize:12,color:submissionType==="self"?"rgba(255,255,255,0.8)":"#888",marginTop:2}}>Appears as: <em>{staffName}</em></div></button>
+        <button className={`pred-btn${submissionType==="class"?" selected":""}`} style={{padding:"12px 16px",fontSize:13,textAlign:"left",borderRadius:10}} onClick={()=>setSubmissionType("class")}><div style={{fontWeight:800}}>On behalf of my class</div><div style={{fontSize:12,color:submissionType==="class"?"rgba(255,255,255,0.8)":"#888",marginTop:2}}>You will enter the class name below</div></button>
+      </div>
+      {submissionType==="class"&&(<div style={{marginBottom:14}}><div style={{fontSize:13,fontWeight:700,color:"#2e7d32",marginBottom:6}}>Class name</div><input className="input" placeholder={`e.g. Year 4 ${school.split(" ")[0]}`} value={className} onChange={e=>setClassName(e.target.value)} style={{marginBottom:0}}/><div style={{fontSize:12,color:"#546e7a",marginTop:4}}>This is how the entry will appear on the leaderboard.</div></div>)}
+      {err&&<div className="err">{err}</div>}
+      <div style={{display:"flex",gap:8}}><button className="btn" style={{background:"#888"}} onClick={()=>setStep("password")}>&larr; Back</button><button className="btn" onClick={handleClassStep}>Next &rarr;</button></div>
+    </div>
+  );
+  if(step==="teams") return(
+    <div className="card card-accent">
+      <div className="section-title">Favourite Teams (optional)</div>
+      <div style={{fontSize:12,color:"#546e7a",marginBottom:14}}>3pts for 1st &middot; 2pts for 2nd &middot; 1pt for 3rd &mdash; ranks the federation's favourites</div>
+      {[["1st choice",favTeam1,setFavTeam1],["2nd choice",favTeam2,setFavTeam2],["3rd choice",favTeam3,setFavTeam3]].map(([label,val,setter],idx)=>{
+        const taken=[favTeam1,favTeam2,favTeam3].filter((_,i)=>i!==idx).filter(Boolean);
+        return(<div key={label} style={{marginBottom:10}}><div style={{fontSize:12,fontWeight:700,color:"#2e7d32",marginBottom:4}}>{label}</div><select className="input" style={{marginBottom:0}} value={val} onChange={e=>setter(e.target.value)}><option value="">Select a team...</option>{ALL_TEAMS.filter(t=>!taken.includes(t)).map(t=><option key={t} value={t}>{t}</option>)}</select></div>);
+      })}
+      <div style={{marginTop:16,display:"flex",gap:8}}><button className="btn" style={{background:"#888"}} onClick={()=>setStep("class")}>&larr; Back</button><button className="btn" onClick={()=>setStep("form")}>Start Predicting &rarr;</button></div>
+    </div>
+  );
+  return(
+    <div>
+      <div className="card">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <div><div style={{fontWeight:800,fontSize:15,color:"#2e7d32"}}>{sessionUser?.name||displayName}'s Predictions</div><div style={{fontSize:13,color:"#546e7a"}}>{total} of 72 fixtures predicted</div></div>
+          <div className="pill" style={allDone?{background:"#e8f5e9",color:"#1b5e20"}:{}}>{allDone?"All done!":` ${72-total} remaining`}</div>
+        </div>
+        <div className="progress-bar"><div className="progress-fill" style={{width:`${(total/72)*100}%`}}/></div>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+        {Object.keys(GROUPS).map(g=>{const gf=FIXTURES.filter(f=>f.group===g),done=gf.filter(f=>preds[f.id]).length;return<button key={g} className={`group-tab${activeGroup===g?" active":""}`} onClick={()=>setActiveGroup(g)}>Group {g} {done===gf.length?"OK":`${done}/${gf.length}`}</button>;})}
+      </div>
+      <div className="card">
+        <div className="section-title">Group {activeGroup}</div>
+        {FIXTURES.filter(f=>f.group===activeGroup).map(f=>(
+          <div key={f.id} className="fix-row">
+            <div className="fix-label">{FLAGS[f.home]||""} {f.home} <span style={{color:"#ccc",margin:"0 6px",fontWeight:400}}>vs</span> {FLAGS[f.away]||""} {f.away}</div>
+            <div className="pred-btns">
+              {[["H",`${f.home} win`],["D","Draw"],["A",`${f.away} win`]].map(([c,label])=>(
+                <button key={c} className={`pred-btn${preds[f.id]===c?" selected":""}`} onClick={()=>setPred(f.id,c)}>{label}</button>
               ))}
             </div>
           </div>
-          <div className="header-accent"/>
-        </div>
-      );
+        ))}
+      </div>
+      <div style={{marginTop:14}}>
+        {err&&<div className="err">{err}</div>}
+        <button className={`btn${allDone?"":" btn-gray"}`} style={allDone?{background:"#2e7d32"}:{}} onClick={handleSubmit} disabled={!allDone||saving}>
+          {saving?"Saving...":allDone?"Lock In My Predictions":`Complete all fixtures first (${total}/72)`}
+        </button>
+        <div style={{fontSize:12,color:"#aaa",marginTop:8}}>Once submitted, predictions cannot be changed.</div>
+      </div>
+    </div>
+  );
+}
 
-      if (loading) return (
-        <>
-          <style>{css}</style>
-          <div className="app"><Header/><div className="spinner"><div className="spin"/></div></div>
-        </>
-      );
-
-      return (
-        <>
-          <style>{css}</style>
-          <div className="app">
-            <Header/>
-            <div className="content">
-              {view==="home"      && <HomeView closed={closed} setView={setView} leaderboard={leaderboard} results={results}/>}
-              {view==="predict"   && <PredictView users={users} saveUser={saveUser} session={session} setSession={setSession} closed={closed} sessionUser={sessionUser}/>}
-              {view==="fixtures"  && <FixturesView results={results} leaderboard={leaderboard}/>}
-              {view==="leaderboard" && <LeaderboardView leaderboard={leaderboard} results={results}/>}
-              {view==="admin"     && <AdminView results={results} saveResult={saveResult} adminMode={adminMode} setAdminMode={setAdminMode} users={users} saveUser={saveUser} deleteUser={deleteUser}/>}
-            </div>
-          </div>
-        </>
-      );
-    }
-
-    // ─── HOME ─────────────────────────────────────────────────────────────────
-    function HomeView({ closed, setView, leaderboard, results }) {
-      return (
-        <div>
-          <div className="card card-accent">
-            <div style={{fontSize:19,fontWeight:800,marginBottom:8,color:"#2e7d32"}}>Welcome, Blossom Federation! 🌍</div>
-            <p style={{fontSize:14,color:"#555",lineHeight:1.65,marginBottom:12}}>
-              Open to all staff and pupils across <strong>Daubeney</strong>, <strong>Lauriston</strong> and <strong>Sebright</strong>. Predict the result of all 72 FIFA World Cup 2026 group stage matches. Earn <strong>3 points</strong> for every correct result. Highest score wins!
-            </p>
-            {closed
-              ? <div className="alert alert-warn">⏰ Submissions are now <strong>closed</strong> — the tournament has begun!</div>
-              : <div className="alert alert-green">✅ Submissions open until <strong>11 June 2026, 7:00 PM GMT</strong></div>
-            }
-            <div style={{display:"flex",gap:8,flexWrap:"wrap",marginTop:4}}>
-              {!closed && <button className="btn" onClick={() => setView("predict")}>📝 Submit My Predictions</button>}
-              <button className="btn btn-yellow" onClick={() => setView("leaderboard")}>🏆 View Leaderboard</button>
-              <button className="btn" style={{background:"#00796b"}} onClick={() => setView("fixtures")}>📅 View Fixtures</button>
-            </div>
-          </div>
-
-          <div className="stat-grid">
-            {[["⚽","72","Group Fixtures"],["👥",leaderboard.length,"Participants"],["📊",`${Object.keys(results).length}/72`,"Results In"],["🏅","3 pts","Per Correct Pick"]].map(([icon,val,label]) => (
-              <div key={label} className="stat-card">
-                <div style={{fontSize:22,marginBottom:4}}>{icon}</div>
-                <div className="stat-val">{val}</div>
-                <div className="stat-label">{label}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Per-school breakdown */}
-          {leaderboard.length > 0 && (
-            <div className="card">
-              <div className="section-title">🌸 School Breakdown</div>
-              {SCHOOLS.map(school => {
-                const members = leaderboard.filter(u => u.school === school);
-                const top = members[0];
-                return (
-                  <div key={school} style={{display:"flex",alignItems:"center",gap:10,marginBottom:10,padding:"8px 0",borderBottom:"1px solid #f1f8e9"}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontSize:13,fontWeight:700,color:"#2e7d32"}}>{school}</div>
-                      <div style={{fontSize:12,color:"#888",marginTop:2}}>{members.length} participant{members.length!==1?"s":""}{top?` · Leader: ${top.name} (${top.pts} pts)`:""}</div>
-                    </div>
-                    <div className="pill">{members.length}</div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {leaderboard.length > 0 && leaderboard[0].pts > 0 && (
-            <div className="card">
-              <div className="section-title">🏆 Top 3 Overall</div>
-              {leaderboard.slice(0,3).map((u,i) => (
-                <div key={u.email} className={`lb-row${i===0?" gold":""}`}>
-                  <span style={{fontSize:20}}>{["🥇","🥈","🥉"][i]}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:14,fontWeight:700}}>{u.name}</div>
-                    <div style={{fontSize:11,color:"#aaa"}}>{u.school}</div>
-                  </div>
-                  <span className="badge">{u.pts} pts</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {leaderboard.length > 0 && (() => {
-            const allTeamsList = ["Algeria","Argentina","Australia","Austria","Belgium","Bosnia and Herzegovina","Brazil","Canada","Cape Verde","Czechia","Colombia","Croatia","Curacao","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Haiti","Iran","Iraq","Ivory Coast","Japan","Jordan","Mexico","Morocco","Netherlands","New Zealand","Norway","Panama","Paraguay","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","South Africa","South Korea","Spain","Sweden","Switzerland","Tunisia","Turkey","Uruguay","USA","Uzbekistan"];
-            const teamPts = {};
-            allTeamsList.forEach(t => teamPts[t] = 0);
-            leaderboard.forEach(u => {
-              if (u.favourite_team_1) teamPts[u.favourite_team_1] = (teamPts[u.favourite_team_1]||0) + 3;
-              if (u.favourite_team_2) teamPts[u.favourite_team_2] = (teamPts[u.favourite_team_2]||0) + 2;
-              if (u.favourite_team_3) teamPts[u.favourite_team_3] = (teamPts[u.favourite_team_3]||0) + 1;
-            });
-            const ranked = Object.entries(teamPts).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0]));
-            const max = ranked[0][1] || 1;
-            return (
-              <div className="card">
-                <div className="section-title">❤️ Federation's Favourite Teams</div>
-                <div style={{fontSize:12,color:"#546e7a",marginBottom:12}}>3pts for 1st choice · 2pts for 2nd · 1pt for 3rd</div>
-                {ranked.map(([team, pts], i) => (
-                  <div key={team} style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-                    <div style={{width:24,textAlign:"center",fontSize:i<3&&pts>0?16:13,fontWeight:700,color:pts>0?"#aaa":"#ddd"}}>
-                      {pts>0?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):i+1}
-                    </div>
-                    <div style={{fontSize:13,fontWeight:pts>0?700:400,minWidth:130,color:pts>0?"#333":"#aaa"}}>{FLAGS[team]||"🏳"} {team}</div>
-                    <div className="bar-bg" style={{flex:1}}>
-                      <div className="bar-fill" style={{width:`${(pts/max)*100}%`,background:pts>0?"#2e7d32":"#ddd"}}/>
-                    </div>
-                    <div style={{fontSize:12,fontWeight:600,color:pts>0?"#2e7d32":"#bbb",minWidth:30,textAlign:"right"}}>{pts}pts</div>
-                  </div>
-                ))}
-              </div>
-            );
-          })()}
-        </div>
-      );
-    }
-
-    // ─── PREDICT ──────────────────────────────────────────────────────────────
-    function PredictView({ users, saveUser, session, setSession, closed, sessionUser }) {
-      // Steps: "register" → "password" → "class" → "teams" → "form"
-      const [step, setStep] = useState(sessionUser ? "form" : "register");
-      const [email, setEmail] = useState("");
-      const [school, setSchool] = useState("");
-      const [schoolPw, setSchoolPw] = useState("");
-      const [submissionType, setSubmissionType] = useState(""); // "self" | "class"
-      const [staffName, setStaffName] = useState("");
-      const [className, setClassName] = useState("");
-      const [displayName, setDisplayName] = useState("");
-      const [favTeam1, setFavTeam1] = useState(sessionUser?.favourite_team_1 || "");
-      const [favTeam2, setFavTeam2] = useState(sessionUser?.favourite_team_2 || "");
-      const [favTeam3, setFavTeam3] = useState(sessionUser?.favourite_team_3 || "");
-      const [preds, setPreds] = useState(sessionUser?.predictions || {});
-      const [activeGroup, setActiveGroup] = useState("A");
-      const [err, setErr] = useState("");
-      const [saving, setSaving] = useState(false);
-
-      useEffect(() => {
-        if (sessionUser) { setPreds(sessionUser.predictions || {}); setStep("form"); }
-      }, [sessionUser]);
-
-      // ── Step 1: email + school ──────────────────────────────────────────────
-      const handleRegister = () => {
-        setErr("");
-        const e = email.trim().toLowerCase();
-        if (!e.endsWith(EMAIL_DOMAIN)) {
-          setErr(`Please use your Blossom school email (${EMAIL_DOMAIN})`);
-          return;
-        }
-        if (!school) { setErr("Please select your school."); return; }
-        const existing = users.find(u => u.email === e);
-        if (existing?.submitted) { setErr("This email has already submitted predictions."); return; }
-        // derive staff name from email
-        const local = e.split("@")[0];
-        const derived = local.replace(/[._-]/g," ").replace(/\b\w/g,c=>c.toUpperCase()).trim();
-        setStaffName(derived);
-        setStep("password");
-      };
-
-      // ── Step 2: school password ─────────────────────────────────────────────
-      const handlePassword = () => {
-        setErr("");
-        if (schoolPw.trim() !== SCHOOL_PASSWORDS[school]) {
-          setErr("Incorrect password for this school. Please check with your coordinator.");
-          return;
-        }
-        setStep("class");
-      };
-
-      // ── Step 3: self or class ───────────────────────────────────────────────
-      const handleClassStep = () => {
-        setErr("");
-        if (!submissionType) { setErr("Please choose an option."); return; }
-        if (submissionType === "class" && !className.trim()) {
-          setErr("Please enter the class name.");
-          return;
-        }
-        const name = submissionType === "class" ? className.trim() : staffName;
-        setDisplayName(name);
-        setSession(email.trim().toLowerCase());
-        setStep("teams");
-      };
-
-      // ── Step 4: favourite teams → then predictions form ─────────────────────
-      const handleTeamsStep = () => {
-        setStep("form");
-      };
-
-      const setPred = (fid, val) => setPreds(p => ({...p,[fid]:val}));
-      const total = Object.keys(preds).length;
-      const allDone = total === FIXTURES.length;
-
-      const handleSubmit = async () => {
-        if (!allDone) { setErr(`Please predict all 72 fixtures. You've done ${total}/72.`); return; }
-        setSaving(true);
-        const e = email.trim().toLowerCase() || session;
-        const name = displayName || sessionUser?.name;
-        await saveUser({
-          email: e,
-          name,
-          user_type: "Staff",
-          submission_type: submissionType || sessionUser?.submission_type,
-          school: school || sessionUser?.school,
-          favourite_team_1: favTeam1 || sessionUser?.favourite_team_1,
-          favourite_team_2: favTeam2 || sessionUser?.favourite_team_2,
-          favourite_team_3: favTeam3 || sessionUser?.favourite_team_3,
-          predictions: preds,
-          submitted: true,
-        });
-        setSaving(false);
-      };
-
-      if (closed) return <div className="card card-accent"><div style={{fontSize:18,fontWeight:800,color:"#2e7d32",marginBottom:8}}>⏰ Submissions Closed</div><p style={{fontSize:14,color:"#555"}}>The deadline has passed. Check the leaderboard!</p></div>;
-
-      if (sessionUser?.submitted) return (
-        <div className="card" style={{textAlign:"center",padding:"2rem 1.5rem"}}>
-          <div style={{fontSize:40,marginBottom:12}}>✅</div>
-          <div style={{fontSize:20,fontWeight:800,color:"#2e7d32",marginBottom:8}}>Predictions Locked In!</div>
-          <p style={{fontSize:14,color:"#555",marginBottom:16}}>Thanks <strong>{sessionUser.name}</strong>! Your 72 predictions are saved and live on the leaderboard.</p>
-          <div className="alert alert-green-soft">Good luck! 🍀 Check the Fixtures page as results come in.</div>
-        </div>
-      );
-
-      const allTeams = ["Algeria","Argentina","Australia","Austria","Belgium","Bosnia and Herzegovina","Brazil","Canada","Cape Verde","Czechia","Colombia","Croatia","Curacao","DR Congo","Ecuador","Egypt","England","France","Germany","Ghana","Haiti","Iran","Iraq","Ivory Coast","Japan","Jordan","Mexico","Morocco","Netherlands","New Zealand","Norway","Panama","Paraguay","Portugal","Qatar","Saudi Arabia","Scotland","Senegal","South Africa","South Korea","Spain","Sweden","Switzerland","Tunisia","Turkey","Uruguay","USA","Uzbekistan"];
-
-      // ── STEP 1: Email + school ──────────────────────────────────────────────
-      if (step==="register") return (
-        <div className="card card-accent">
-          <div className="section-title">📧 Staff Sign-In</div>
-          <div className="alert alert-green-soft" style={{marginBottom:14}}>
-            This predictor is for <strong>staff only</strong>. You can submit predictions for yourself or on behalf of your class.
-          </div>
-          <div style={{fontSize:13,fontWeight:700,color:"#2e7d32",marginBottom:6}}>Your school email</div>
-          <input className="input" placeholder={`yourname${EMAIL_DOMAIN}`} value={email} onChange={e=>setEmail(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handleRegister()}/>
-          <div style={{fontSize:13,fontWeight:700,color:"#2e7d32",marginBottom:8}}>Your school</div>
-          <div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:16}}>
-            {SCHOOLS.map(s=>(
-              <button key={s} className={`pred-btn${school===s?" selected":""}`} style={{padding:"9px 14px",fontSize:13,textAlign:"left"}} onClick={()=>setSchool(s)}>🏫 {s}</button>
-            ))}
-          </div>
-          {err && <div className="err">{err}</div>}
-          <button className="btn" onClick={handleRegister}>Next →</button>
-        </div>
-      );
-
-      // ── STEP 2: School password ─────────────────────────────────────────────
-      if (step==="password") return (
-        <div className="card card-accent">
-          <div className="section-title">🔑 School Password</div>
-          <p style={{fontSize:13,color:"#666",marginBottom:14,lineHeight:1.6}}>
-            Enter the staff password for <strong>{school}</strong>. If you don't have it, please ask your competition coordinator.
-          </p>
-          <input className="input" type="password" placeholder="School password" value={schoolPw} onChange={e=>setSchoolPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&handlePassword()}/>
-          {err && <div className="err">{err}</div>}
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn" style={{background:"#888"}} onClick={()=>setStep("register")}>← Back</button>
-            <button className="btn" onClick={handlePassword}>Verify →</button>
-          </div>
-        </div>
-      );
-
-      // ── STEP 3: Self or class ───────────────────────────────────────────────
-      if (step==="class") return (
-        <div className="card card-accent">
-          <div className="section-title">👤 Who is this entry for?</div>
-          <p style={{fontSize:13,color:"#666",marginBottom:14,lineHeight:1.6}}>
-            You can submit predictions for yourself, or fill them in on behalf of a class. The name shown on the leaderboard will be yours or your class name accordingly.
-          </p>
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
-            <button
-              className={`pred-btn${submissionType==="self"?" selected":""}`}
-              style={{padding:"12px 16px",fontSize:13,textAlign:"left",borderRadius:10}}
-              onClick={()=>setSubmissionType("self")}
-            >
-              <div style={{fontWeight:800}}>🙋 Myself</div>
-              <div style={{fontSize:12,color:submissionType==="self"?"rgba(255,255,255,0.8)":"#888",marginTop:2}}>Appears as: <em>{staffName}</em></div>
-            </button>
-            <button
-              className={`pred-btn${submissionType==="class"?" selected":""}`}
-              style={{padding:"12px 16px",fontSize:13,textAlign:"left",borderRadius:10}}
-              onClick={()=>setSubmissionType("class")}
-            >
-              <div style={{fontWeight:800}}>🏫 On behalf of my class</div>
-              <div style={{fontSize:12,color:submissionType==="class"?"rgba(255,255,255,0.8)":"#888",marginTop:2}}>You'll enter the class name below</div>
-            </button>
-          </div>
-          {submissionType==="class" && (
-            <div style={{marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:700,color:"#2e7d32",marginBottom:6}}>Class name</div>
-              <input
-                className="input"
-                placeholder={`e.g. Year 4 ${school.split(" ")[0]}`}
-                value={className}
-                onChange={e=>setClassName(e.target.value)}
-                style={{marginBottom:0}}
-              />
-              <div style={{fontSize:12,color:"#546e7a",marginTop:4}}>This is how the entry will appear on the leaderboard.</div>
-            </div>
-          )}
-          {err && <div className="err">{err}</div>}
-          <div style={{display:"flex",gap:8}}>
-            <button className="btn" style={{background:"#888"}} onClick={()=>setStep("password")}>← Back</button>
-            <button className="btn" onClick={handleClassStep}>Next →</button>
-          </div>
-        </div>
-      );
-
-      // ── STEP 4: Favourite teams ─────────────────────────────────────────────
-      if (step==="teams") return (
-        <div className="card card-accent">
-          <div className="section-title">❤️ Favourite Teams</div>
-          <p style={{fontSize:13,color:"#666",marginBottom:6,lineHeight:1.6}}>Pick your top 3 teams — used to rank the federation's favourites.</p>
-          <div style={{fontSize:12,color:"#546e7a",marginBottom:14}}>🥇 3 pts · 🥈 2 pts · 🥉 1 pt (optional — you can skip this)</div>
-          {[["🥇 1st choice",favTeam1,setFavTeam1],["🥈 2nd choice",favTeam2,setFavTeam2],["🥉 3rd choice",favTeam3,setFavTeam3]].map(([label,val,setter],idx)=>{
-            const taken = [favTeam1,favTeam2,favTeam3].filter((_,i)=>i!==idx).filter(Boolean);
-            return (
-              <div key={label} style={{marginBottom:10}}>
-                <div style={{fontSize:12,fontWeight:700,color:"#2e7d32",marginBottom:4}}>{label}</div>
-                <select className="input" style={{marginBottom:0}} value={val} onChange={e=>setter(e.target.value)}>
-                  <option value="">Select a team...</option>
-                  {allTeams.filter(t=>!taken.includes(t)).map(t=><option key={t} value={t}>{FLAGS[t]||"🏳"} {t}</option>)}
-                </select>
-              </div>
-            );
-          })}
-          <div style={{marginTop:16,display:"flex",gap:8}}>
-            <button className="btn" style={{background:"#888"}} onClick={()=>setStep("class")}>← Back</button>
-            <button className="btn" onClick={handleTeamsStep}>Start Predicting →</button>
-          </div>
-        </div>
-      );
-
-      return (
-        <div>
-          <div className="card">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-              <div>
-                <div style={{fontWeight:800,fontSize:15,color:"#2e7d32"}}>{sessionUser?.name||displayName}'s Predictions</div>
-                <div style={{fontSize:13,color:"#546e7a"}}>{total} of 72 fixtures predicted</div>
-              </div>
-              <div className="pill" style={allDone?{background:"#e8f5e9",color:"#1b5e20"}:{}}>{allDone?"✅ All done!":`${72-total} remaining`}</div>
-            </div>
-            <div className="progress-bar"><div className="progress-fill" style={{width:`${(total/72)*100}%`}}/></div>
-          </div>
-          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-            {Object.keys(GROUPS).map(g=>{
-              const gf=FIXTURES.filter(f=>f.group===g),done=gf.filter(f=>preds[f.id]).length;
-              return <button key={g} className={`group-tab${activeGroup===g?" active":""}`} onClick={()=>setActiveGroup(g)}>Group {g} {done===gf.length?"✅":`${done}/${gf.length}`}</button>;
-            })}
-          </div>
-          <div className="card">
-            <div className="section-title">Group {activeGroup}</div>
-            {FIXTURES.filter(f=>f.group===activeGroup).map(f=>(
-              <div key={f.id} className="fix-row">
-                <div className="fix-label">{FLAGS[f.home]||"🏳"} {f.home} <span style={{color:"#ccc",margin:"0 6px",fontWeight:400}}>vs</span> {FLAGS[f.away]||"🏳"} {f.away}</div>
-                <div className="pred-btns">
-                  {[["H",`${f.home} win`],["D","Draw"],["A",`${f.away} win`]].map(([c,label])=>(
-                    <button key={c} className={`pred-btn${preds[f.id]===c?" selected":""}`} onClick={()=>setPred(f.id,c)}>{label}</button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          <div style={{marginTop:14}}>
-            {err && <div className="err">{err}</div>}
-            <button className={`btn${allDone?"":" btn-gray"}`} style={allDone?{background:"#2e7d32"}:{}} onClick={handleSubmit} disabled={!allDone||saving}>
-              {saving?"💾 Saving...":allDone?"🔒 Lock In My Predictions":`Complete all fixtures first (${total}/72)`}
-            </button>
-            <div style={{fontSize:12,color:"#aaa",marginTop:8}}>⚠️ Once submitted, predictions cannot be changed.</div>
-          </div>
-        </div>
-      );
-    }
-
-    // ─── FIXTURES ─────────────────────────────────────────────────────────────
-    function FixturesView({ results, leaderboard }) {
-      const [filter, setFilter] = useState("All");
-      const byDate = {};
-      FIXTURES.forEach(f => { if (!byDate[f.date]) byDate[f.date]=[]; byDate[f.date].push(f); });
-      const getPredStats = fid => {
-        let h=0,d=0,a=0;
-        leaderboard.forEach(u=>{const p=(u.predictions||{})[fid];if(p==="H")h++;else if(p==="D")d++;else if(p==="A")a++;});
-        return {h,d,a,total:h+d+a};
-      };
-      const formatDate = s => new Date(s+"T12:00:00Z").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-      const dates = Object.keys(byDate).sort();
-      const filteredDates = filter==="All"?dates:dates.filter(d=>byDate[d].some(f=>f.group===filter));
-      return (
-        <div>
-          <div className="card" style={{marginBottom:12}}>
-            <div className="section-title" style={{marginBottom:8}}>📅 Group Stage Fixtures</div>
-            <p style={{fontSize:13,color:"#666",marginBottom:12}}>All times in GMT. Prediction stats update as results are entered.</p>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              <button className={`group-tab${filter==="All"?" active":""}`} onClick={()=>setFilter("All")}>All Groups</button>
-              {Object.keys(GROUPS).map(g=>(
-                <button key={g} className={`group-tab${filter===g?" active":""}`} onClick={()=>setFilter(g)}>Group {g}</button>
-              ))}
-            </div>
-          </div>
-          {filteredDates.map(date=>{
-            const dayF=byDate[date].filter(f=>filter==="All"||f.group===filter);
-            if(!dayF.length) return null;
-            return (
-              <div key={date}>
-                <div className="date-header">📆 {formatDate(date)}</div>
-                {dayF.map(f=>{
-                  const res=results[f.id],stats=getPredStats(f.id);
-                  return (
-                    <div key={f.id} className="fix-card">
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                        <div style={{fontSize:14,fontWeight:700,flex:1}}>{FLAGS[f.home]||"🏳"} {f.home}</div>
-                        <div style={{fontSize:11,color:"#bbb",fontWeight:700}}>vs</div>
-                        <div style={{fontSize:14,fontWeight:700,flex:1,textAlign:"right"}}>{f.away} {FLAGS[f.away]||"🏳"}</div>
-                      </div>
-                      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
-                        <div style={{display:"flex",gap:6,alignItems:"center"}}>
-                          <span style={{fontSize:10,fontWeight:800,background:"#e8f5e9",color:"#2e7d32",borderRadius:10,padding:"2px 8px"}}>Group {f.group}</span>
-                          <span style={{fontSize:11,color:"#aaa",fontWeight:600}}>🕐 {f.time.replace("+1","")} GMT</span>
-                        </div>
-                        {res?<span className="badge badge-green">{res==="H"?`${f.home} win`:res==="D"?"Draw":`${f.away} win`}</span>:<span className="badge badge-gray">No result yet</span>}
-                      </div>
-                      {stats.total>0&&(
-                        <div style={{marginTop:10,borderTop:"1px solid #f1f8e9",paddingTop:8}}>
-                          <div style={{fontSize:11,fontWeight:700,color:"#546e7a",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.4px"}}>
-                            Predictions — {stats.total} participant{stats.total!==1?"s":""}
-                            {res&&<span style={{marginLeft:8,color:"#2e7d32"}}>· {res==="H"?stats.h:res==="D"?stats.d:stats.a} correct ({Math.round(((res==="H"?stats.h:res==="D"?stats.d:stats.a)/stats.total)*100)}%)</span>}
-                          </div>
-                          {[["H",f.home,stats.h,"#2e7d32"],["D","Draw",stats.d,"#f9a825"],["A",f.away,stats.a,"#00796b"]].map(([code,label,count,color])=>{
-                            const pct=stats.total>0?Math.round((count/stats.total)*100):0,correct=res&&res===code;
-                            return (
-                              <div key={code} style={{display:"flex",alignItems:"center",gap:6,marginBottom:3,fontSize:11,color:"#666"}}>
-                                <span style={{minWidth:100,fontWeight:correct?700:400,color:correct?"#2e7d32":"#666"}}>{label}{correct?" ✅":""}</span>
-                                <div className="bar-bg"><div className="bar-fill" style={{width:`${pct}%`,background:correct?"#2e7d32":color,opacity:correct?1:0.5}}/></div>
-                                <span style={{minWidth:36,textAlign:"right",fontWeight:600,color:correct?"#2e7d32":"#888"}}>{pct}%</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
-        </div>
-      );
-    }
-
-    // ─── LEADERBOARD ──────────────────────────────────────────────────────────
-    function LeaderboardView({ leaderboard, results }) {
-      const [filterSchool, setFilterSchool] = useState("All");
-      const [filterType, setFilterType] = useState("All");
-
-      const filtered = leaderboard.filter(u => {
-        if (filterSchool !== "All" && u.school !== filterSchool) return false;
-        if (filterType === "Staff" && u.submission_type !== "self") return false;
-        if (filterType === "Class" && u.submission_type !== "class") return false;
-        return true;
-      });
-
-      return (
-        <div>
-          <div className="card">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-              <div className="section-title" style={{marginBottom:0}}>🏆 Leaderboard</div>
-              <div className="pill">{Object.keys(results).length}/72 results in</div>
-            </div>
-            <div style={{marginBottom:12}}>
-              <div style={{fontSize:12,fontWeight:700,color:"#546e7a",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:6}}>Filter by school</div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
-                <button className={`group-tab${filterSchool==="All"?" active":""}`} onClick={()=>setFilterSchool("All")}>All Schools</button>
-                {SCHOOLS.map(s=>{
-                  const short = s.split(" ")[0];
-                  return <button key={s} className={`group-tab${filterSchool===s?" active":""}`} onClick={()=>setFilterSchool(s)}>{short}</button>;
-                })}
-              </div>
-              <div style={{fontSize:12,fontWeight:700,color:"#546e7a",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:6}}>Filter by type</div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                {["All","Staff","Class"].map(t=><button key={t} className={`group-tab${filterType===t?" active":""}`} onClick={()=>setFilterType(t)}>{t==="Class"?"🏫 Class entries":t==="Staff"?"🙋 Staff":"All"}</button>)}
-              </div>
-            </div>
-            <div style={{height:1,background:"#e8f5e9",marginBottom:12}}/>
-            {filtered.length===0
-              ? <div style={{fontSize:14,color:"#aaa",textAlign:"center",padding:"1.5rem 0"}}>No participants match this filter yet.</div>
-              : filtered.map((u,i)=>{
-                const hasPoints = u.pts > 0;
-                return (
-                  <div key={u.email} className={`lb-row${i===0&&hasPoints?" gold":""}`}>
-                    <div style={{width:30,textAlign:"center",fontSize:i<3&&hasPoints?20:14,fontWeight:700,color:"#aaa"}}>
-                      {hasPoints?(i===0?"🥇":i===1?"🥈":i===2?"🥉":i+1):i+1}
-                    </div>
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.name}</div>
-                      <div style={{fontSize:11,color:"#aaa",marginTop:1,display:"flex",gap:6,flexWrap:"wrap"}}>
-                        <span>{u.school}</span>
-                        <span>·</span>
-                        <span>{u.submission_type === "class" ? "Class entry" : "Staff"}</span>
-                      </div>
-                    </div>
-                    <div style={{textAlign:"right"}}>
-                      <div className="badge">{u.pts} pts</div>
-                      <div style={{fontSize:11,color:"#aaa",marginTop:3}}>{u.correct} correct</div>
-                    </div>
-                  </div>
-                );
-              })
-            }
-          </div>
-          <div className="card" style={{background:"#e8f5e9",border:"none"}}>
-            <div style={{fontSize:13,color:"#2e7d32",fontWeight:600}}>Scoring: 3 points for every correct result (home win / draw / away win)</div>
-          </div>
-        </div>
-      );
-    }
-
-    // ─── ADMIN ────────────────────────────────────────────────────────────────
-    function AdminView({ results, saveResult, adminMode, setAdminMode, users, saveUser, deleteUser }) {
-      const [pw, setPw] = useState("");
-      const [err, setErr] = useState("");
-      const [activeTab, setActiveTab] = useState("results");
-      const [activeGroup, setActiveGroup] = useState("A");
-      const [saving, setSaving] = useState(false);
-      const [saved, setSaved] = useState(false);
-      const [search, setSearch] = useState("");
-      const [editingUser, setEditingUser] = useState(null);
-      const [editPreds, setEditPreds] = useState({});
-      const [editGroup, setEditGroup] = useState("A");
-      const [confirmDelete, setConfirmDelete] = useState(null);
-      const [subSaved, setSubSaved] = useState(false);
-
-      const FUNCTION_URL = "https://kmavclegdxssujusxtzd.supabase.co/functions/v1/send-verification";
-
-      const login = async () => {
-        try {
-          const res = await fetch(FUNCTION_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${SUPABASE_KEY}` },
-            body: JSON.stringify({ action: "admin_login", email: "admin", code: pw }),
-          });
-          const data = await res.json();
-          if (data.valid) { setAdminMode(true); setErr(""); }
-          else setErr("Incorrect password.");
-        } catch(e) { setErr("Network error. Please try again."); }
-      };
-
-      const handleSaveResult = async (fid, val) => {
-        setSaved(false);
-        await saveResult(fid, val);
-        setSaved(true);
-        setTimeout(()=>setSaved(false),2000);
-      };
-
-      const handleEditUser = u => { setEditingUser(u.email); setEditPreds({...u.predictions}); setEditGroup("A"); };
-      const handleSaveEdit = async () => {
-        setSaving(true);
-        const u = users.find(x=>x.email===editingUser);
-        await saveUser({...u, predictions: editPreds});
-        setSaving(false); setEditingUser(null); setSubSaved(true);
-        setTimeout(()=>setSubSaved(false),3000);
-      };
-      const handleUnlock = async email => {
-        const u = users.find(x=>x.email===email);
-        await saveUser({...u, submitted: false});
-      };
-
-      if (!adminMode) return (
-        <div className="card card-accent">
-          <div className="section-title">🔧 Admin Panel</div>
-          <p style={{fontSize:13,color:"#666",marginBottom:14}}>Enter the admin password to manage the competition.</p>
-          <input className="input" type="password" placeholder="Admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()}/>
-          {err&&<div className="err">{err}</div>}
-          <button className="btn" onClick={login}>Login →</button>
-        </div>
-      );
-
-      if (editingUser) {
-        const total=Object.keys(editPreds).length;
-        const u = users.find(x=>x.email===editingUser);
-        return (
-          <div>
-            <div className="card card-accent" style={{marginBottom:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
-                <div>
-                  <div className="section-title" style={{marginBottom:2}}>✏️ Editing: {u?.name}</div>
-                  <div style={{fontSize:12,color:"#546e7a"}}>{editingUser} · {u?.school}</div>
-                </div>
-                <button className="btn" style={{background:"#888",padding:"7px 14px",fontSize:13}} onClick={()=>setEditingUser(null)}>← Back</button>
-              </div>
-              <div style={{marginTop:10,fontSize:13,color:"#666"}}>{total}/72 predictions set</div>
-              <div className="progress-bar" style={{marginTop:6}}><div className="progress-fill" style={{width:`${(total/72)*100}%`}}/></div>
-            </div>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-              {Object.keys(GROUPS).map(g=>{
-                const gf=FIXTURES.filter(f=>f.group===g),done=gf.filter(f=>editPreds[f.id]).length;
-                return <button key={g} className={`group-tab${editGroup===g?" active":""}`} onClick={()=>setEditGroup(g)}>Group {g} {done===gf.length?"✅":`${done}/${gf.length}`}</button>;
-              })}
-            </div>
-            <div className="card">
-              <div className="section-title">Group {editGroup}</div>
-              {FIXTURES.filter(f=>f.group===editGroup).map(f=>(
-                <div key={f.id} className="fix-row">
-                  <div className="fix-label">{FLAGS[f.home]||"🏳"} {f.home} <span style={{color:"#ccc",margin:"0 6px",fontWeight:400}}>vs</span> {FLAGS[f.away]||"🏳"} {f.away}</div>
-                  <div className="pred-btns">
-                    {[["H",`${f.home} win`],["D","Draw"],["A",`${f.away} win`]].map(([c,label])=>(
-                      <button key={c} className={`pred-btn${editPreds[f.id]===c?" selected":""}`} style={{fontSize:12,padding:"5px 10px"}} onClick={()=>setEditPreds(p=>({...p,[f.id]:c}))}>{label}</button>
-                    ))}
-                    {editPreds[f.id]&&<button className="pred-btn" style={{color:"#c00",borderColor:"#fcc",fontSize:11}} onClick={()=>setEditPreds(p=>{const n={...p};delete n[f.id];return n;})}>✕ Clear</button>}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div style={{marginTop:14,display:"flex",gap:10,alignItems:"center"}}>
-              <button className="btn" style={{background:"#2e7d32"}} onClick={handleSaveEdit} disabled={saving}>{saving?"Saving...":"💾 Save Changes"}</button>
-              <button className="btn" style={{background:"#888"}} onClick={()=>setEditingUser(null)}>Cancel</button>
-            </div>
-          </div>
-        );
+function FixturesView({results,leaderboard,saveResult}){
+  const [expanded,setExpanded]=useState(null);
+  const [syncing,setSyncing]=useState(false);
+  const [syncMsg,setSyncMsg]=useState("");
+  const [selDate,setSelDate]=useState(null);
+  const handleSync=async()=>{
+    setSyncing(true);setSyncMsg("");
+    try{
+      const res=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({action:"sync_results"})});
+      if(!res.ok){setSyncMsg("API error. Please try again.");setSyncing(false);return;}
+      const data=await res.json();const matches=data.matches||[];let updated=0;
+      for(const m of matches){
+        const home=normalise(m.homeTeam?.name),away=normalise(m.awayTeam?.name),hg=m.score?.fullTime?.home,ag=m.score?.fullTime?.away;
+        if(!home||!away||hg===null||ag===null)continue;
+        const fix=FIXTURES.find(f=>f.home===home&&f.away===away);if(!fix)continue;
+        await saveResult(fix.id,hg>ag?"H":ag>hg?"A":"D");updated++;
       }
-
-      const participantList = users.filter(u=>
-        !search||u.name?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase())||u.school?.toLowerCase().includes(search.toLowerCase())
-      );
-
-      return (
-        <div>
-          <div className="card" style={{marginBottom:12}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div className="section-title" style={{marginBottom:0}}>🔧 Admin Panel</div>
-              <div className="pill">{users.length} participants</div>
-            </div>
-            <div className="tabs">
-              {[["results","⚽ Match Results"],["submissions","👥 Manage Submissions"]].map(([t,label])=>(
-                <button key={t} className={`group-tab${activeTab===t?" active":""}`} style={{fontSize:13,padding:"7px 16px"}} onClick={()=>setActiveTab(t)}>{label}</button>
-              ))}
+      setSyncMsg(`${updated} result${updated!==1?"s":""} synced.`);
+    }catch(e){setSyncMsg("Network error.");}
+    setSyncing(false);
+  };
+  const byDate={};FIXTURES.forEach(f=>{if(!byDate[f.date])byDate[f.date]=[];byDate[f.date].push(f);});
+  const dates=Object.keys(byDate).sort();
+  const today=new Date().toISOString().slice(0,10);
+  const fmtLong=s=>new Date(s+"T12:00:00Z").toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
+  const fmtShort=s=>{const d=new Date(s+"T12:00:00Z");return{day:d.toLocaleDateString("en-GB",{weekday:"short"}),dt:d.getDate(),mo:d.toLocaleDateString("en-GB",{month:"short"})};};
+  const stats=fid=>{let h=0,d=0,a=0;const hu=[],du=[],au=[];leaderboard.forEach(u=>{const p=(u.predictions||{})[fid];if(p==="H"){h++;hu.push(u.name);}else if(p==="D"){d++;du.push(u.name);}else if(p==="A"){a++;au.push(u.name);}});return{h,d,a,total:h+d+a,hu,du,au};};
+  const scrollTo=date=>{setSelDate(date);setTimeout(()=>{const el=document.getElementById(`dt-${date}`);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},50);};
+  return(
+    <div>
+      <div className="fixtures-sticky">
+        <div className="card" style={{marginBottom:0}}>
+          <div className="section-title" style={{marginBottom:8}}>Group Stage Fixtures</div>
+          <p style={{fontSize:13,color:"#666",marginBottom:12}}>All times in BST. Tap a fixture to see predictions.</p>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,flexWrap:"wrap"}}>
+            <button className="btn" style={{fontSize:13,padding:"8px 16px",background:"#43a047"}} onClick={handleSync} disabled={syncing}>{syncing?"Syncing...":"Sync Results"}</button>
+            {syncMsg&&<span style={{fontSize:12,color:syncMsg.includes("synced")?"#2e7d32":"#c62828",fontWeight:600}}>{syncMsg}</span>}
+          </div>
+          <div style={{overflowX:"auto",paddingBottom:4}}>
+            <div style={{display:"flex",gap:6,minWidth:"max-content"}}>
+              {dates.map(date=>{
+                const {day,dt,mo}=fmtShort(date),active=selDate===date,isT=date===today,isPast=date<today;
+                const bc=active?"#2e7d32":isT?"#f9a825":isPast?"#43a047":"#c5e1a5";
+                const bg=active?"#2e7d32":isT?"#fffde7":isPast?"#e8f5e9":"#fff";
+                const color=active?"#fff":isT?"#f9a825":isPast?"#2e7d32":"#555";
+                return(<button key={date} onClick={()=>scrollTo(date)} style={{display:"flex",flexDirection:"column",alignItems:"center",padding:"6px 10px",borderRadius:10,border:`1.5px solid ${bc}`,background:bg,color,cursor:"pointer",fontFamily:"inherit",minWidth:46}}><span style={{fontSize:10,fontWeight:700,textTransform:"uppercase",opacity:.8}}>{day}</span><span style={{fontSize:18,fontWeight:800,lineHeight:1.2}}>{dt}</span><span style={{fontSize:10,fontWeight:600,opacity:.8}}>{mo}</span></button>);
+              })}
             </div>
           </div>
-
-          {activeTab==="results"&&(
-            <>
-              <div className="card" style={{marginBottom:12}}>
-                <p style={{fontSize:13,color:"#666"}}>Click a result to save it instantly. Leaderboard updates in real time.</p>
-                {saved&&<div className="ok" style={{marginTop:8}}>✅ Result saved!</div>}
-              </div>
-              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
-                {Object.keys(GROUPS).map(g=>{
-                  const done=FIXTURES.filter(f=>f.group===g&&results[f.id]).length,tot=FIXTURES.filter(f=>f.group===g).length;
-                  return <button key={g} className={`group-tab${activeGroup===g?" active":""}`} onClick={()=>setActiveGroup(g)}>Group {g} {done>0?`${done}/${tot}`:""}</button>;
-                })}
-              </div>
-              <div className="card">
-                <div className="section-title">Group {activeGroup} Results</div>
-                {FIXTURES.filter(f=>f.group===activeGroup).map(f=>(
-                  <div key={f.id} className="fix-row">
-                    <div className="fix-label">{FLAGS[f.home]||"🏳"} {f.home} <span style={{color:"#ccc",margin:"0 6px",fontWeight:400}}>vs</span> {FLAGS[f.away]||"🏳"} {f.away}</div>
-                    <div className="pred-btns">
-                      {[["H",`${f.home} win`],["D","Draw"],["A",`${f.away} win`]].map(([c,label])=>(
-                        <button key={c} className={`pred-btn${results[f.id]===c?" selected":""}`} style={{fontSize:12,padding:"5px 10px"}} onClick={()=>handleSaveResult(f.id,c)}>{label}</button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </>
-          )}
-
-          {activeTab==="submissions"&&(
-            <>
-              <div className="card" style={{marginBottom:12}}>
-                <p style={{fontSize:13,color:"#666",marginBottom:10}}>Edit, unlock or delete participant submissions.</p>
-                <input className="input" style={{marginBottom:0}} placeholder="🔍 Search by name, email or school..." value={search} onChange={e=>setSearch(e.target.value)}/>
-              </div>
-              {subSaved&&<div className="alert alert-green" style={{marginBottom:12}}>✅ Submission updated.</div>}
-              {participantList.length===0
-                ? <div className="card" style={{textAlign:"center",color:"#aaa",fontSize:14}}>No participants found.</div>
-                : participantList.map(u=>(
-                  <div key={u.email} className="card" style={{marginBottom:8}}>
-                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
-                      <div>
-                        <div style={{fontSize:14,fontWeight:700}}>{u.name||"—"}</div>
-                        <div style={{fontSize:12,color:"#546e7a"}}>{u.email}</div>
-                        <div style={{fontSize:11,color:"#aaa",marginTop:2}}>
-                          {u.school} · {u.submission_type === "class" ? "Class entry" : "Staff"}
-                          {" · "}{Object.keys(u.predictions||{}).length}/72 predictions
-                          {" · "}<span style={{color:u.submitted?"#2e7d32":"#e65100",fontWeight:700}}>{u.submitted?"🔒 Locked":"🔓 Unlocked"}</span>
-                        </div>
-                      </div>
-                      <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-                        <button className="btn" style={{padding:"6px 12px",fontSize:12}} onClick={()=>handleEditUser(u)}>✏️ Edit</button>
-                        <button className="btn btn-yellow" style={{padding:"6px 12px",fontSize:12}} onClick={()=>handleUnlock(u.email)}>🔓 Unlock</button>
-                        <button className="btn btn-red" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setConfirmDelete(u.email)}>🗑 Delete</button>
-                      </div>
-                    </div>
-                    {confirmDelete===u.email&&(
-                      <div className="alert alert-orange" style={{marginTop:10}}>
-                        <div style={{fontWeight:700,marginBottom:6}}>⚠️ Delete {u.name}'s submission? This cannot be undone.</div>
-                        <div style={{display:"flex",gap:8}}>
-                          <button className="btn btn-red" style={{padding:"6px 14px",fontSize:12}} onClick={()=>{deleteUser(u.email);setConfirmDelete(null);}}>Yes, delete</button>
-                          <button className="btn" style={{background:"#888",padding:"6px 14px",fontSize:12}} onClick={()=>setConfirmDelete(null)}>Cancel</button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))
-              }
-            </>
-          )}
         </div>
-      );
-    }
+      </div>
+      {dates.map(date=>{
+        const dayF=byDate[date];
+        return(<div key={date} id={`dt-${date}`}>
+          <div className="date-header">{fmtLong(date)}</div>
+          {dayF.map(f=>{
+            const res=results[f.id],st=stats(f.id),isExp=expanded===f.id;
+            return(<div key={f.id} className="fix-card" onClick={()=>setExpanded(isExp?null:f.id)}>
+              <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                <div style={{fontSize:14,fontWeight:700,flex:1}}>{FLAGS[f.home]||""} {f.home}</div>
+                <div style={{fontSize:11,color:"#bbb",fontWeight:700}}>vs</div>
+                <div style={{fontSize:14,fontWeight:700,flex:1,textAlign:"right"}}>{f.away} {FLAGS[f.away]||""}</div>
+              </div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:6}}>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  <span style={{fontSize:10,fontWeight:800,background:"#e8f5e9",color:"#2e7d32",borderRadius:10,padding:"2px 8px"}}>Group {f.group}</span>
+                  <span style={{fontSize:11,color:"#aaa",fontWeight:600}}>{f.time} BST</span>
+                </div>
+                <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                  {res?<span className="badge badge-green">{res==="H"?`${f.home} win`:res==="D"?"Draw":`${f.away} win`}</span>:<span className="badge badge-gray">No result yet</span>}
+                  <span style={{fontSize:14,color:"#c5e1a5"}}>{isExp?"&#9650;":"&#9660;"}</span>
+                </div>
+              </div>
+              {st.total>0&&(<div style={{marginTop:10,borderTop:"1px solid #f1f8e9",paddingTop:8}}>
+                <div style={{fontSize:11,fontWeight:700,color:"#546e7a",marginBottom:4,textTransform:"uppercase",letterSpacing:"0.4px"}}>
+                  Predictions &mdash; {st.total} entr{st.total!==1?"ies":"y"}
+                  {res&&<span style={{marginLeft:8,color:"#2e7d32"}}>&middot; {res==="H"?st.h:res==="D"?st.d:st.a} correct ({Math.round(((res==="H"?st.h:res==="D"?st.d:st.a)/st.total)*100)}%)</span>}
+                </div>
+                {[["H",f.home,st.h,st.hu,"#2e7d32"],["D","Draw",st.d,st.du,"#f9a825"],["A",f.away,st.a,st.au,"#00796b"]].map(([code,label,count,names,color])=>{
+                  const pct=st.total>0?Math.round((count/st.total)*100):0,correct=res&&res===code;
+                  return(<div key={code} style={{marginBottom:isExp?8:3}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"#666"}}>
+                      <span style={{minWidth:100,fontWeight:correct?700:400,color:correct?"#2e7d32":"#666"}}>{label}{correct?" OK":""}</span>
+                      <div className="bar-bg"><div className="bar-fill" style={{width:`${pct}%`,background:correct?"#2e7d32":color,opacity:correct?1:0.5}}/></div>
+                      <span style={{minWidth:36,textAlign:"right",fontWeight:600,color:correct?"#2e7d32":"#888"}}>{pct}%</span>
+                    </div>
+                    {isExp&&names.length>0&&(<div style={{marginTop:4,marginLeft:106,display:"flex",flexWrap:"wrap",gap:4}}>{names.map(n=>(<span key={n} style={{fontSize:11,background:correct?"#e8f5e9":"#f1f8e9",color:correct?"#1b5e20":"#2e7d32",borderRadius:20,padding:"2px 8px",fontWeight:600}}>{n}</span>))}</div>)}
+                  </div>);
+                })}
+              </div>)}
+              {st.total===0&&isExp&&<div style={{marginTop:8,fontSize:12,color:"#ccc",borderTop:"1px solid #f1f8e9",paddingTop:8}}>No predictions submitted yet</div>}
+            </div>);
+          })}
+        </div>);
+      })}
+    </div>
+  );
+}
 
-    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
-  </script>
+function LeaderboardView({leaderboard,results}){
+  const [filterSchool,setFilterSchool]=useState("All");
+  const [filterType,setFilterType]=useState("All");
+  const [selUser,setSelUser]=useState(null);
+  const filtered=leaderboard.filter(u=>{
+    if(filterSchool!=="All"&&u.school!==filterSchool)return false;
+    if(filterType==="Staff"&&u.submission_type!=="self")return false;
+    if(filterType==="Class"&&u.submission_type!=="class")return false;
+    return true;
+  });
+  if(selUser){
+    const u=leaderboard.find(x=>x.email===selUser);if(!u)return null;
+    const preds=u.predictions||{},rIn=Object.keys(results).length;
+    return(<div>
+      <div className="card card-accent" style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <div><div style={{fontSize:16,fontWeight:800,color:"#2e7d32"}}>{u.name}</div><div style={{fontSize:12,color:"#546e7a"}}>{u.school} &middot; {u.submission_type==="class"?"Class entry":"Staff"}</div></div>
+          <button className="btn" style={{background:"#888",padding:"7px 14px",fontSize:13}} onClick={()=>setSelUser(null)}>&larr; Back</button>
+        </div>
+        <div style={{display:"flex",gap:10,marginTop:12,flexWrap:"wrap"}}>
+          <div className="stat-card" style={{flex:1,minWidth:90}}><div className="stat-val">{u.pts}</div><div className="stat-label">Points</div></div>
+          <div className="stat-card" style={{flex:1,minWidth:90}}><div className="stat-val">{u.correct}</div><div className="stat-label">Correct</div></div>
+          <div className="stat-card" style={{flex:1,minWidth:90}}><div className="stat-val">{rIn>0?`${Math.round((u.correct/rIn)*100)}%`:"&mdash;"}</div><div className="stat-label">Accuracy</div></div>
+        </div>
+      </div>
+      {Object.keys(GROUPS).map(g=>{const gF=FIXTURES.filter(f=>f.group===g);return(<div key={g} className="card" style={{marginBottom:8}}>
+        <div className="section-title">Group {g}</div>
+        {gF.map(f=>{
+          const pred=preds[f.id],res=results[f.id],isC=pred&&res&&pred===res,isW=pred&&res&&pred!==res,isP=pred&&!res;
+          const pl=pred==="H"?`${f.home} win`:pred==="D"?"Draw":pred==="A"?`${f.away} win`:null;
+          const rl=res==="H"?`${f.home} win`:res==="D"?"Draw":res==="A"?`${f.away} win`:null;
+          return(<div key={f.id} style={{padding:"9px 0",borderBottom:"1px solid #f1f8e9"}}>
+            <div style={{fontSize:13,fontWeight:700,marginBottom:5,color:"#333"}}>{FLAGS[f.home]||""} {f.home} <span style={{color:"#bbb",margin:"0 4px",fontWeight:400}}>vs</span> {FLAGS[f.away]||""} {f.away}</div>
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              {!pred?<span style={{fontSize:12,color:"#ccc"}}>No prediction</span>:<span style={{fontSize:12,fontWeight:700,padding:"3px 10px",borderRadius:8,background:isC?"#e8f5e9":isW?"#fde8e8":isP?"#e8f5e9":"#f5f5f5",color:isC?"#1b5e20":isW?"#c62828":isP?"#2e7d32":"#888",border:`1.5px solid ${isC?"#a5d6a7":isW?"#f5c0c0":isP?"#c5e1a5":"#eee"}`}}>{isC?"OK ":isW?"X ":isP?"... ":""}{pl}</span>}
+              {res&&<span style={{fontSize:11,color:"#aaa",fontWeight:600}}>Result: {rl}</span>}
+            </div>
+          </div>);
+        })}
+      </div>);})}
+    </div>);
+  }
+  return(<div>
+    <div className="card">
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div className="section-title" style={{marginBottom:0}}>Leaderboard</div>
+        <div className="pill">{Object.keys(results).length}/72 results in</div>
+      </div>
+      <div style={{marginBottom:12}}>
+        <div style={{fontSize:12,fontWeight:700,color:"#546e7a",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:6}}>Filter by school</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:10}}>
+          <button className={`group-tab${filterSchool==="All"?" active":""}`} onClick={()=>setFilterSchool("All")}>All Schools</button>
+          {SCHOOLS.map(s=><button key={s} className={`group-tab${filterSchool===s?" active":""}`} onClick={()=>setFilterSchool(s)}>{s.split(" ")[0]}</button>)}
+        </div>
+        <div style={{fontSize:12,fontWeight:700,color:"#546e7a",textTransform:"uppercase",letterSpacing:"0.5px",marginBottom:6}}>Filter by type</div>
+        <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+          {[["All","All"],["Staff","Staff"],["Class","Class entries"]].map(([v,label])=>(
+            <button key={v} className={`group-tab${filterType===v?" active":""}`} onClick={()=>setFilterType(v)}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{height:1,background:"#e8f5e9",marginBottom:8}}/>
+      <div style={{fontSize:12,color:"#aaa",marginBottom:12,fontStyle:"italic"}}>Tap a name to see their full predictions</div>
+      {filtered.length===0?<div style={{fontSize:14,color:"#aaa",textAlign:"center",padding:"1.5rem 0"}}>No entries match this filter yet.</div>:filtered.map((u,i)=>{
+        const hp=u.pts>0;
+        return(<div key={u.email} className={`lb-row${i===0&&hp?" gold":""}`} onClick={()=>setSelUser(u.email)}>
+          <div style={{width:30,textAlign:"center",fontSize:i<3&&hp?20:14,fontWeight:700,color:"#aaa"}}>{hp?(i===0?"1":i===1?"2":i===2?"3":i+1):i+1}</div>
+          <div style={{flex:1,minWidth:0}}><div style={{fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{u.name}</div><div style={{fontSize:11,color:"#aaa",marginTop:1}}>{u.school} &middot; {u.submission_type==="class"?"Class":"Staff"}</div></div>
+          <div style={{textAlign:"right"}}><div className="badge">{u.pts} pts</div><div style={{fontSize:11,color:"#aaa",marginTop:3}}>{u.correct} correct</div></div>
+          <div style={{fontSize:16,color:"#c5e1a5"}}>&rsaquo;</div>
+        </div>);
+      })}
+    </div>
+    <div className="card" style={{background:"#e8f5e9",border:"none"}}><div style={{fontSize:13,color:"#2e7d32",fontWeight:600}}>Scoring: 3 points for every correct result (home win / draw / away win)</div></div>
+  </div>);
+}
+
+function AdminView({results,saveResult,adminMode,setAdminMode,users,saveUser,deleteUser}){
+  const [pw,setPw]=useState("");const [err,setErr]=useState("");
+  const [tab,setTab]=useState("results");const [grp,setGrp]=useState("A");
+  const [saved,setSaved]=useState(false);const [search,setSearch]=useState("");
+  const [editUser,setEditUser]=useState(null);const [editPreds,setEditPreds]=useState({});const [editGrp,setEditGrp]=useState("A");
+  const [confDel,setConfDel]=useState(null);const [subSaved,setSubSaved]=useState(false);
+  const [saving,setSaving]=useState(false);const [syncing,setSyncing]=useState(false);const [syncMsg,setSyncMsg]=useState("");
+
+  const handleSync=async()=>{
+    setSyncing(true);setSyncMsg("");
+    try{
+      const res=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({action:"sync_results"})});
+      if(!res.ok){setSyncMsg("API error.");setSyncing(false);return;}
+      const data=await res.json();const matches=data.matches||[];let updated=0;
+      for(const m of matches){const home=normalise(m.homeTeam?.name),away=normalise(m.awayTeam?.name),hg=m.score?.fullTime?.home,ag=m.score?.fullTime?.away;if(!home||!away||hg===null||ag===null)continue;const fix=FIXTURES.find(f=>f.home===home&&f.away===away);if(!fix)continue;await saveResult(fix.id,hg>ag?"H":ag>hg?"A":"D");updated++;}
+      setSyncMsg(`${updated} result${updated!==1?"s":""} synced.`);
+    }catch(e){setSyncMsg("Network error.");}
+    setSyncing(false);
+  };
+  const login=async()=>{try{const res=await fetch(FUNCTION_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${SUPABASE_KEY}`},body:JSON.stringify({action:"admin_login",email:"admin",code:pw})});const data=await res.json();if(data.valid){setAdminMode(true);setErr("");}else setErr("Incorrect password.");}catch(e){setErr("Network error.");}};
+  const savRes=async(fid,val)=>{setSaved(false);await saveResult(fid,val);setSaved(true);setTimeout(()=>setSaved(false),2000);};
+  const startEdit=u=>{setEditUser(u.email);setEditPreds({...u.predictions});setEditGrp("A");};
+  const saveEdit=async()=>{setSaving(true);const u=users.find(x=>x.email===editUser);await saveUser({...u,predictions:editPreds});setSaving(false);setEditUser(null);setSubSaved(true);setTimeout(()=>setSubSaved(false),3000);};
+  const unlock=async email=>{const u=users.find(x=>x.email===email);await saveUser({...u,submitted:false});};
+
+  if(!adminMode) return(<div className="card card-accent"><div className="section-title">Admin Panel</div><p style={{fontSize:13,color:"#666",marginBottom:14}}>Enter the admin password to manage the competition.</p><input className="input" type="password" placeholder="Admin password" value={pw} onChange={e=>setPw(e.target.value)} onKeyDown={e=>e.key==="Enter"&&login()}/>{err&&<div className="err">{err}</div>}<button className="btn" onClick={login}>Login &rarr;</button></div>);
+
+  if(editUser){
+    const tot=Object.keys(editPreds).length;
+    return(<div>
+      <div className="card card-accent" style={{marginBottom:12}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}}>
+          <div><div className="section-title" style={{marginBottom:2}}>Editing: {users.find(u=>u.email===editUser)?.name}</div><div style={{fontSize:12,color:"#546e7a"}}>{editUser}</div></div>
+          <button className="btn" style={{background:"#888",padding:"7px 14px",fontSize:13}} onClick={()=>setEditUser(null)}>&larr; Back</button>
+        </div>
+        <div style={{marginTop:10,fontSize:13,color:"#666"}}>{tot}/72 predictions set</div>
+        <div className="progress-bar" style={{marginTop:6}}><div className="progress-fill" style={{width:`${(tot/72)*100}%`}}/></div>
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>{Object.keys(GROUPS).map(g=>{const gf=FIXTURES.filter(f=>f.group===g),done=gf.filter(f=>editPreds[f.id]).length;return<button key={g} className={`group-tab${editGrp===g?" active":""}`} onClick={()=>setEditGrp(g)}>Group {g} {done===gf.length?"OK":`${done}/${gf.length}`}</button>;})}</div>
+      <div className="card">
+        <div className="section-title">Group {editGrp}</div>
+        {FIXTURES.filter(f=>f.group===editGrp).map(f=>(
+          <div key={f.id} className="fix-row">
+            <div className="fix-label">{FLAGS[f.home]||""} {f.home} <span style={{color:"#ccc",margin:"0 6px",fontWeight:400}}>vs</span> {FLAGS[f.away]||""} {f.away}</div>
+            <div className="pred-btns">
+              {[["H",`${f.home} win`],["D","Draw"],["A",`${f.away} win`]].map(([c,label])=>(<button key={c} className={`pred-btn${editPreds[f.id]===c?" selected":""}`} style={{fontSize:12,padding:"5px 10px"}} onClick={()=>setEditPreds(p=>({...p,[f.id]:c}))}>{label}</button>))}
+              {editPreds[f.id]&&<button className="pred-btn" style={{color:"#c62828",borderColor:"#fcc",fontSize:11}} onClick={()=>setEditPreds(p=>{const n={...p};delete n[f.id];return n;})}>Clear</button>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div style={{marginTop:14,display:"flex",gap:10,alignItems:"center"}}>
+        <button className="btn" style={{background:"#2e7d32"}} onClick={saveEdit} disabled={saving}>{saving?"Saving...":"Save Changes"}</button>
+        <button className="btn" style={{background:"#888"}} onClick={()=>setEditUser(null)}>Cancel</button>
+      </div>
+    </div>);
+  }
+
+  const pList=users.filter(u=>!search||u.name?.toLowerCase().includes(search.toLowerCase())||u.email?.toLowerCase().includes(search.toLowerCase())||u.school?.toLowerCase().includes(search.toLowerCase()));
+  return(<div>
+    <div className="card" style={{marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div className="section-title" style={{marginBottom:0}}>Admin Panel</div><div className="pill">{users.length} entries</div></div>
+      <div className="tabs">{[["results","Match Results"],["submissions","Manage Submissions"]].map(([t,label])=>(<button key={t} className={`group-tab${tab===t?" active":""}`} style={{fontSize:13,padding:"7px 16px"}} onClick={()=>setTab(t)}>{label}</button>))}</div>
+    </div>
+    {tab==="results"&&(<>
+      <div className="card" style={{marginBottom:12}}>
+        <p style={{fontSize:13,color:"#666",marginBottom:10}}>Click a result to save manually, or use Sync to pull the latest results.</p>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap",alignItems:"center"}}>
+          <button className="btn" style={{fontSize:13,padding:"8px 16px",background:"#43a047"}} onClick={handleSync} disabled={syncing}>{syncing?"Syncing...":"Sync Results"}</button>
+          {syncMsg&&<span style={{fontSize:12,color:syncMsg.includes("synced")?"#2e7d32":"#c62828",fontWeight:600}}>{syncMsg}</span>}
+        </div>
+        {saved&&<div className="ok" style={{marginTop:8}}>Result saved!</div>}
+      </div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>{Object.keys(GROUPS).map(g=>{const done=FIXTURES.filter(f=>f.group===g&&results[f.id]).length,tot=FIXTURES.filter(f=>f.group===g).length;return<button key={g} className={`group-tab${grp===g?" active":""}`} onClick={()=>setGrp(g)}>Group {g} {done>0?`${done}/${tot}`:""}</button>;})}</div>
+      <div className="card">
+        <div className="section-title">Group {grp} Results</div>
+        {FIXTURES.filter(f=>f.group===grp).map(f=>(<div key={f.id} className="fix-row">
+          <div className="fix-label">{FLAGS[f.home]||""} {f.home} <span style={{color:"#ccc",margin:"0 6px",fontWeight:400}}>vs</span> {FLAGS[f.away]||""} {f.away}</div>
+          <div className="pred-btns">{[["H",`${f.home} win`],["D","Draw"],["A",`${f.away} win`]].map(([c,label])=>(<button key={c} className={`pred-btn${results[f.id]===c?" selected":""}`} style={{fontSize:12,padding:"5px 10px"}} onClick={()=>savRes(f.id,c)}>{label}</button>))}</div>
+        </div>))}
+      </div>
+    </>)}
+    {tab==="submissions"&&(<>
+      <div className="card" style={{marginBottom:12}}><p style={{fontSize:13,color:"#666",marginBottom:10}}>Edit, unlock or delete submissions.</p><input className="input" style={{marginBottom:0}} placeholder="Search by name, email or school..." value={search} onChange={e=>setSearch(e.target.value)}/></div>
+      {subSaved&&<div className="alert alert-green" style={{marginBottom:12}}>Submission updated.</div>}
+      {pList.length===0?<div className="card" style={{textAlign:"center",color:"#aaa",fontSize:14}}>No entries found.</div>:pList.map(u=>(
+        <div key={u.email} className="card" style={{marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:8}}>
+            <div><div style={{fontSize:14,fontWeight:700}}>{u.name||"&mdash;"}</div><div style={{fontSize:12,color:"#546e7a"}}>{u.email}</div><div style={{fontSize:11,color:"#aaa",marginTop:2}}>{u.school} &middot; {u.submission_type==="class"?"Class":"Staff"} &middot; {Object.keys(u.predictions||{}).length}/72 &middot; <span style={{color:u.submitted?"#2e7d32":"#e65100",fontWeight:700}}>{u.submitted?"Locked":"Unlocked"}</span></div></div>
+            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+              <button className="btn" style={{padding:"6px 12px",fontSize:12}} onClick={()=>startEdit(u)}>Edit</button>
+              <button className="btn btn-yellow" style={{padding:"6px 12px",fontSize:12}} onClick={()=>unlock(u.email)}>Unlock</button>
+              <button className="btn btn-red" style={{padding:"6px 12px",fontSize:12}} onClick={()=>setConfDel(u.email)}>Delete</button>
+            </div>
+          </div>
+          {confDel===u.email&&(<div className="alert alert-orange" style={{marginTop:10}}>
+            <div style={{fontWeight:700,marginBottom:6}}>Delete {u.name}'s submission? This cannot be undone.</div>
+            <div style={{display:"flex",gap:8}}><button className="btn btn-red" style={{padding:"6px 14px",fontSize:12}} onClick={()=>{deleteUser(u.email);setConfDel(null);}}>Yes, delete</button><button className="btn" style={{background:"#888",padding:"6px 14px",fontSize:12}} onClick={()=>setConfDel(null)}>Cancel</button></div>
+          </div>)}
+        </div>
+      ))}
+    </>)}
+  </div>);
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
 </body>
 </html>
